@@ -1,0 +1,2788 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema Operacional LEC - S. José do Rio Preto</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --n950:#030c19;--n900:#071525;--n800:#0b1d36;--n700:#0f2648;--n600:#132f5a;
+  --b500:#1a4fad;--b400:#2a6dd9;--b300:#4a8ff5;--b200:#7ab3ff;
+  --cyan:#00d4ff;--teal:#00b896;--amber:#f5a623;--rose:#f54263;--violet:#7c5cfc;
+  --text:#e8f0fe;--text2:#8ba3cc;--text3:#3d5578;
+  --bdr:#0f2040;--bdr2:#1a3360;
+  --sf:#0b1d36;--sf2:#0d2244;--sf3:#102850;
+  --r:10px;--mono:'JetBrains Mono',monospace;
+  --sans:'Nunito',sans-serif;--disp:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--sans);background:var(--n950);color:var(--text);font-size:13px;display:flex;flex-direction:column;}
+
+/* TOPBAR */
+.topbar{height:52px;background:var(--n900);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 20px;flex-shrink:0;z-index:200;}
+.tb-brand{display:flex;align-items:center;gap:10px;}
+.tb-logo{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--b400),var(--cyan));display:flex;align-items:center;justify-content:center;font-family:var(--disp);font-weight:800;font-size:12px;color:#fff;box-shadow:0 0 20px rgba(0,212,255,.2);}
+.tb-name{font-family:var(--disp);font-weight:700;font-size:15px;}
+.tb-sub{font-size:9px;color:var(--text2);letter-spacing:.5px;}
+.tb-center{display:flex;align-items:center;gap:6px;}
+.comp-pill{padding:4px 12px;border-radius:20px;background:rgba(42,109,217,.15);border:1px solid rgba(42,109,217,.3);font-family:var(--mono);font-size:11px;color:var(--b200);}
+.tb-right{display:flex;align-items:center;gap:16px;}
+.tb-kpi{text-align:right;}
+.tb-kpi .kv{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--cyan);}
+.tb-kpi .kl{font-size:9px;color:var(--text2);}
+
+/* APP */
+.app{display:flex;flex:1;overflow:hidden;}
+
+/* SIDEBAR */
+.sidebar{width:210px;flex-shrink:0;background:var(--n900);border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow-y:auto;padding:10px 0;}
+.nav-sep{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.2px;padding:10px 20px 4px;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;margin:1px 8px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all .15s;border:1px solid transparent;}
+.nav-item:hover{background:var(--sf2);color:var(--text);}
+.nav-item.active{background:linear-gradient(135deg,rgba(42,109,217,.25),rgba(0,212,255,.08));border-color:rgba(42,109,217,.35);color:var(--b200);}
+.nav-item .ni{font-size:14px;width:20px;text-align:center;}
+.nav-badge{margin-left:auto;background:var(--rose);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:10px;font-family:var(--mono);}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;}
+.page{display:none;padding:22px;animation:fi .18s ease;}
+.page.active{display:block;}
+@keyframes fi{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+
+/* PAGE HD */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:12px;}
+.ph-title{font-family:var(--disp);font-size:20px;font-weight:700;letter-spacing:-.3px;}
+.ph-sub{font-size:11px;color:var(--text2);margin-top:3px;}
+.ph-actions{display:flex;gap:8px;flex-shrink:0;align-items:center;}
+
+/* CARDS */
+.card{background:var(--sf);border:1px solid var(--bdr);border-radius:var(--r);padding:18px;margin-bottom:14px;}
+.card-hd{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.9px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+
+/* STATS */
+.sg{display:grid;gap:12px;margin-bottom:16px;}
+.sg4{grid-template-columns:repeat(4,1fr);}
+.sg5{grid-template-columns:repeat(5,1fr);}
+.sg6{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;grid-template-columns:repeat(6,1fr);}
+.sc{background:var(--sf);border:1px solid var(--bdr);border-radius:var(--r);padding:10px 12px;position:relative;overflow:hidden;min-width:0;}
+.sc::after{content:'';position:absolute;top:-10px;right:-10px;width:50px;height:50px;border-radius:50%;opacity:.07;}
+.sc.blue::after{background:var(--b400);}
+.sc.cyan::after{background:var(--cyan);}
+.sc.amber::after{background:var(--amber);}
+.sc.rose::after{background:var(--rose);}
+.sc.teal::after{background:var(--teal);}
+.sc.violet::after{background:var(--violet);}
+.sc-l{font-size:8px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sc-v{font-family:var(--mono);font-size:18px;font-weight:700;line-height:1.1;}
+.sc-v.blue{color:var(--b300);}
+.sc-v.cyan{color:var(--cyan);}
+.sc-v.amber{color:var(--amber);}
+.sc-v.rose{color:var(--rose);}
+.sc-v.teal{color:var(--teal);}
+.sc-v.violet{color:var(--violet);}
+.sc-s{font-size:9px;color:var(--text3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* BTNS */
+.btn{padding:7px 14px;border-radius:6px;border:none;font-family:var(--sans);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--b400);color:#fff;}
+.btn-primary:hover{background:var(--b300);}
+.btn-cyan{background:linear-gradient(135deg,var(--b400),var(--cyan));color:#fff;box-shadow:0 2px 14px rgba(0,212,255,.18);}
+.btn-cyan:hover{box-shadow:0 2px 22px rgba(0,212,255,.3);}
+.btn-success{background:var(--teal);color:#fff;}
+.btn-success:hover{filter:brightness(1.1);}
+.btn-warn{background:var(--amber);color:#000;}
+.btn-danger{background:var(--rose);color:#fff;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--bdr2);}
+.btn-ghost:hover{background:var(--sf2);color:var(--text);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+
+/* FORM */
+.fg{display:grid;gap:10px;margin-bottom:12px;}
+.fg2{grid-template-columns:1fr 1fr;}
+.fg3{grid-template-columns:1fr 1fr 1fr;}
+.fg4{grid-template-columns:1fr 1fr 1fr 1fr;}
+.fg5{grid-template-columns:1fr 1fr 1fr 1fr 1fr;}
+.fg6{grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;}
+.fld label{display:block;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;}
+.fld input,.fld select,.fld textarea{width:100%;padding:8px 10px;background:var(--sf2);border:1px solid var(--bdr2);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:12px;transition:border-color .15s;}
+.fld input:focus,.fld select:focus{outline:none;border-color:var(--b400);}
+.fld select option{background:var(--n900);}
+
+/* AUTOCOMPLETE */
+.ac-wrap{position:relative;}
+.ac-list{position:absolute;top:calc(100% + 2px);left:0;right:0;z-index:600;background:var(--n800);border:1px solid var(--bdr2);border-radius:0 0 8px 8px;max-height:180px;overflow-y:auto;display:none;}
+.ac-list.open{display:block;}
+.ac-item{padding:8px 12px;cursor:pointer;font-size:12px;transition:background .1s;display:flex;align-items:center;justify-content:space-between;}
+.ac-item:hover{background:var(--sf3);}
+.ac-matr{font-family:var(--mono);font-size:10px;color:var(--text2);}
+
+/* TABLES */
+.tw{overflow-x:auto;border-radius:var(--r);}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--sf2);}
+th{padding:9px 10px;text-align:left;font-size:9px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid var(--bdr);white-space:nowrap;font-family:var(--disp);}
+td{padding:8px 10px;border-bottom:1px solid var(--bdr);font-size:12px;vertical-align:middle;}
+tbody tr:hover{background:rgba(255,255,255,.02);}
+tbody tr:last-child td{border-bottom:none;}
+.tn{font-family:var(--mono);font-weight:600;}
+
+/* BADGE */
+.bdg{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;font-family:var(--mono);}
+.bd-blue{background:rgba(42,109,217,.18);color:var(--b300);}
+.bd-cyan{background:rgba(0,212,255,.12);color:var(--cyan);}
+.bd-teal{background:rgba(0,184,150,.15);color:var(--teal);}
+.bd-amber{background:rgba(245,166,35,.15);color:var(--amber);}
+.bd-rose{background:rgba(245,66,99,.15);color:var(--rose);}
+.bd-violet{background:rgba(124,92,252,.15);color:var(--violet);}
+.bd-gray{background:rgba(74,96,128,.18);color:var(--text2);}
+
+/* VA */
+.va-big{font-family:var(--mono);font-size:17px;font-weight:700;color:var(--cyan);}
+.va-zero{color:var(--rose)!important;}
+
+/* MODAL */
+.mo{position:fixed;inset:0;background:rgba(3,12,25,.88);display:none;align-items:center;justify-content:center;z-index:1000;}
+.mo.open{display:flex;}
+.mo-box{background:var(--n900);border:1px solid var(--bdr2);border-radius:14px;padding:24px;width:min(580px,94vw);max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.7);}
+.mo-title{font-family:var(--disp);font-size:16px;font-weight:700;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;}
+.mo-close{cursor:pointer;color:var(--text2);font-size:20px;line-height:1;padding:0 4px;}
+.mo-close:hover{color:var(--text);}
+
+/* CALENDAR */
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.cal-nav-title{font-family:var(--disp);font-size:15px;font-weight:700;}
+.cal-g{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-dh{text-align:center;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;padding:5px 0;}
+.cal-d{background:var(--sf);border:1px solid var(--bdr);border-radius:6px;padding:5px 3px;text-align:center;cursor:pointer;transition:all .15s;min-height:50px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;}
+.cal-d:hover{border-color:var(--b400);}
+.cal-d .dn{font-size:12px;font-weight:700;}
+.cal-d .dt{font-size:8px;text-transform:uppercase;letter-spacing:.3px;}
+.cal-d.cd-dom{opacity:.5;} .cal-d.cd-dom .dn{color:var(--rose);}
+.cal-d.cd-sab .dn{color:var(--teal);}
+.cal-d.cd-fer{border-color:var(--amber);background:rgba(245,166,35,.07);}
+.cal-d.cd-fer .dn{color:var(--amber);}
+.cal-d.cd-dtrb{border-color:var(--cyan);opacity:1;background:rgba(0,212,255,.06);}
+.cal-d.cd-dtrb .dn{color:var(--cyan);}
+.cal-d.cd-off{border-color:rgba(245,66,99,.25);background:rgba(245,66,99,.04);}
+.cal-d.cd-em{background:transparent;border-color:transparent;cursor:default;}
+.cal-vbar{width:12px;height:2px;border-radius:2px;background:var(--teal);margin-top:2px;}
+.cal-vbar.off{background:var(--rose);}
+
+/* CHART */
+.barchart{display:flex;flex-direction:column;gap:8px;}
+.br-row{display:flex;align-items:center;gap:8px;}
+.br-lbl{font-size:11px;color:var(--text2);width:150px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.br-track{flex:1;height:7px;background:var(--sf3);border-radius:4px;overflow:hidden;}
+.br-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--b400),var(--cyan));transition:width .5s;}
+.br-val{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--b200);width:25px;text-align:right;}
+
+/* TOAST */
+.toast{position:fixed;bottom:18px;right:18px;z-index:3000;background:var(--sf);border:1px solid var(--bdr2);color:var(--text);padding:10px 14px;border-radius:8px;font-size:12px;opacity:0;transform:translateY(5px);transition:all .2s;pointer-events:none;max-width:280px;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.ok{border-color:var(--teal);} .toast.err{border-color:var(--rose);}
+
+/* TABS */
+.tabs{display:flex;border-bottom:1px solid var(--bdr);margin-bottom:16px;}
+.tab-b{padding:8px 16px;background:none;border:none;font-family:var(--sans);font-size:12px;font-weight:700;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.tab-b:hover{color:var(--text);}
+.tab-b.active{color:var(--cyan);border-bottom-color:var(--cyan);}
+.tab-p{display:none;} .tab-p.active{display:block;}
+
+/* DIVIDER */
+.div{height:1px;background:var(--bdr);margin:14px 0;}
+.flex{display:flex;gap:8px;align-items:center;}
+.mla{margin-left:auto;}
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px;}
+.empty{text-align:center;padding:40px;color:var(--text3);}
+.ml4{margin-left:4px;}
+.empty .ei{font-size:32px;margin-bottom:8px;}
+
+/* GRÁFICO DE COLUNAS 3D - Ausências por Data */
+.chart3d-wrap {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 8px;
+  height: 220px;
+  padding: 10px 0 30px 0;
+  overflow-x: auto;
+}
+.col3d {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  width: 28px;
+}
+.col3d-bar-wrap {
+  position: relative;
+  width: 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.col3d-front {
+  width: 22px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(180deg, var(--cyan) 0%, var(--b400) 100%);
+  box-shadow: inset -4px 0 6px rgba(0,0,0,.3);
+  position: relative;
+  transition: height .5s ease;
+  min-height: 4px;
+}
+.col3d-front::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 0;
+  width: 100%;
+  height: 7px;
+  background: var(--cyan);
+  transform: skewX(-30deg) translateX(5px);
+  border-radius: 2px 2px 0 0;
+  opacity: .85;
+}
+.col3d-front::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 9px;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(0,212,255,.4) 0%, rgba(42,109,217,.2) 100%);
+  transform: skewY(-60deg);
+  transform-origin: top left;
+}
+.col3d-val {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cyan);
+  font-family: var(--mono);
+}
+.col3d-lbl {
+  font-size: 9px;
+  color: var(--text2);
+  white-space: nowrap;
+  transform: rotate(-40deg);
+  margin-top: 6px;
+}
+
+
+/* Cards clicáveis */
+.sc-click {
+  cursor: pointer;
+  transition: all .2s;
+}
+.sc-click:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  border-color: rgba(255,255,255,.15) !important;
+}
+.sc-hint {
+  font-size: 10px;
+  opacity: .5;
+}
+.sc.orange .sc-v { color: #ff8c00; }
+.sc.green .sc-v { color: #00b896; }
+
+/* Modal de detalhes do card */
+.modal-card-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn .15s ease;
+}
+.modal-card-box {
+  background: var(--n800,#0b1d36);
+  border: 1px solid var(--bdr2,#1a3360);
+  border-radius: 14px;
+  padding: 0;
+  width: min(600px, 95vw);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+}
+.modal-card-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--bdr,#132040);
+}
+.modal-card-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--cyan,#00d4ff);
+}
+.modal-card-close {
+  background: none;
+  border: none;
+  color: var(--text2,#8ba3cc);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+.modal-card-close:hover { background: rgba(255,255,255,.05); color: #fff; }
+.modal-card-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 16px 20px;
+}
+.modal-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  font-size: 12px;
+  gap: 10px;
+}
+.modal-card-row:last-child { border-bottom: none; }
+.modal-card-nome { font-weight: 600; color: var(--text,#e8f0fe); flex: 1; }
+.modal-card-tipo { color: var(--text2,#8ba3cc); font-size: 11px; }
+.modal-card-data { color: var(--cyan,#00d4ff); font-size: 11px; white-space: nowrap; }
+.modal-card-dias { 
+  background: rgba(255,255,255,.06); 
+  padding: 2px 7px; 
+  border-radius: 4px; 
+  font-size: 11px; 
+  font-weight: 700; 
+  color: #fff;
+  white-space: nowrap;
+}
+.modal-card-empty {
+  text-align: center;
+  color: var(--text2,#8ba3cc);
+  padding: 30px 0;
+  font-size: 13px;
+}
+.modal-card-footer {
+  padding: 10px 20px;
+  border-top: 1px solid var(--bdr,#132040);
+  font-size: 11px;
+  color: var(--text2,#8ba3cc);
+}
+
+
+/* ── LOGIN ──────────────────────────────────────────────── */
+#login-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #060f20 0%, #0a1628 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+.login-box {
+  background: #0b1d36;
+  border: 1px solid #1a3360;
+  border-radius: 16px;
+  padding: 40px;
+  width: min(400px, 90vw);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  text-align: center;
+}
+.login-logo {
+  width: 56px; height: 56px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2a6dd9, #00d4ff);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 20px; color: #fff;
+  margin: 0 auto 12px;
+  box-shadow: 0 8px 24px rgba(0,212,255,.2);
+}
+.login-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.login-sub { font-size: 11px; color: #8ba3cc; margin-bottom: 28px; }
+.login-fld { margin-bottom: 14px; text-align: left; }
+.login-fld label { display: block; font-size: 11px; font-weight: 700; color: #8ba3cc; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 5px; }
+.login-fld input { width: 100%; padding: 10px 12px; background: #0d2244; border: 1px solid #1a3360; border-radius: 8px; color: #e8f0fe; font-size: 13px; }
+.login-fld input:focus { outline: none; border-color: #2a6dd9; }
+.login-btn { width: 100%; padding: 11px; background: linear-gradient(135deg, #2a6dd9, #00d4ff); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 6px; }
+.login-btn:hover { opacity: .9; }
+.login-err { color: #f54263; font-size: 12px; margin-top: 10px; min-height: 16px; }
+
+
+/* Modal de confirmação de exclusão */
+.modal-confirm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.75);
+  z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeIn .15s ease;
+}
+.modal-confirm-box {
+  background: #0b1d36;
+  border: 1px solid #1a3360;
+  border-radius: 14px;
+  padding: 28px 28px 20px;
+  width: min(380px, 90vw);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  text-align: center;
+}
+.modal-confirm-icon { font-size: 32px; margin-bottom: 12px; }
+.modal-confirm-title { font-size: 14px; font-weight: 700; color: #e8f0fe; margin-bottom: 6px; }
+.modal-confirm-sub { font-size: 12px; color: #8ba3cc; margin-bottom: 20px; line-height: 1.5; }
+.modal-confirm-btns { display: flex; gap: 10px; justify-content: center; }
+.modal-confirm-btns button { padding: 9px 24px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all .15s; }
+.btn-confirm-ok { background: linear-gradient(135deg, #f54263, #c0392b); color: #fff; }
+.btn-confirm-ok:hover { opacity: .85; }
+.btn-confirm-cancel { background: rgba(255,255,255,.07); color: #8ba3cc; border: 1px solid #1a3360 !important; }
+.btn-confirm-cancel:hover { background: rgba(255,255,255,.12); color: #e8f0fe; }
+
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ LOGIN ═══════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">FP</div>
+    <div class="login-title">Sistema Operacional LEC</div>
+    <div class="login-sub">LEC - SJ Rio Preto</div>
+    <div class="login-fld">
+      <label>Usuário</label>
+      <input id="login-user" type="text" placeholder="Seu usuário" autocomplete="off">
+    </div>
+    <div class="login-fld">
+      <label>Senha</label>
+      <input id="login-pass" type="password" placeholder="Sua senha">
+    </div>
+    <button class="login-btn" onclick="fazerLogin()">Entrar</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-brand">
+    <div class="tb-logo">FP</div>
+    <div><div class="tb-name">Folha Prévia</div><div class="tb-sub">LEC - SJ RIO PRETO</div></div>
+  </div>
+  <div class="tb-center">
+    <span class="comp-pill" id="hd-comp-atual">—</span>
+    <span style="color:var(--text3);font-size:11px">→</span>
+    <span class="comp-pill" id="hd-comp-prox" style="opacity:.6">—</span>
+  </div>
+  <div class="tb-right">
+    <div class="tb-kpi"><div class="kv" id="hd-total-colab">0</div><div class="kl">COLABORADORES</div></div>
+    <div class="tb-kpi"><div class="kv" id="hd-dias-va">0</div><div class="kl">DIAS VA</div></div>
+    <div class="tb-kpi"><div class="kv" id="hd-ausencias" style="color:var(--rose)">0</div><div class="kl">AUSÊNCIAS</div></div>
+    <div style="width:1px;height:28px;background:var(--bdr);margin:0 8px;"></div>
+    <div id="card-ultima-edicao" style="background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);border-radius:8px;padding:5px 10px;font-size:10px;line-height:1.5;max-width:200px;">
+      <div style="color:var(--text2);font-size:9px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;">Última Edição</div>
+      <div id="ue-usuario" style="color:var(--cyan);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+      <div id="ue-datahora" style="color:var(--text2);font-size:9px;">—</div>
+    </div>
+    <div style="width:1px;height:28px;background:var(--bdr);margin:0 8px;"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div id="tb-user-nome" style="font-size:10px;color:var(--cyan);font-weight:700;">—</div>
+      <button onclick="fazerLogout()" style="background:rgba(245,66,99,.12);border:1px solid rgba(245,66,99,.3);border-radius:5px;color:var(--rose);font-size:10px;font-weight:700;padding:2px 10px;cursor:pointer;transition:all .15s;" onmouseover="this.style.background='rgba(245,66,99,.25)'" onmouseout="this.style.background='rgba(245,66,99,.12)'">⏻ Sair</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP BODY -->
+<div class="app">
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="nav-sep">Principal</div>
+  <div class="nav-item active" onclick="nav('dashboard',this)"><span class="ni">📊</span>Dashboard</div>
+  <div class="nav-item" onclick="nav('previa',this)"><span class="ni">📄</span>Prévia Final</div>
+
+  <div class="nav-sep">Cadastros</div>
+  <div class="nav-item" onclick="nav('colaboradores',this)"><span class="ni">👥</span>Colaboradores</div>
+  <div class="nav-item" onclick="nav('eventos',this)"><span class="ni">📋</span>Eventos<span class="nav-badge" id="nb-ev">0</span></div>
+
+  <div class="nav-sep">Operacional</div>
+  <div class="nav-item" onclick="nav('calendario',this)"><span class="ni">📅</span>Calendário</div>
+
+  <div class="nav-sep">Sistema</div>
+  <div class="nav-item" onclick="nav('config',this)"><span class="ni">⚙️</span>Configurações</div>
+<div class="nav-item" id="nav-admin" style="display:none" onclick="nav('admin',this)"><span class="ni">🔐</span>Painel Admin</div>
+</nav>
+
+<!-- CONTENT -->
+<div class="content">
+
+<!-- ═══════════════════════ DASHBOARD ═══════════════════════ -->
+<div class="page active" id="page-dashboard">
+  <div class="ph">
+    <div><div class="ph-title">Dashboard Gerencial</div><div class="ph-sub" id="dash-sub">—</div></div>
+    <div class="ph-actions">
+      <button class="btn btn-cyan" onclick="nav('previa',document.querySelector('[onclick*=previa]'))">📄 Gerar Prévia</button>
+    </div>
+  </div>
+
+  <div class="sg sg6" id="dash-stats"></div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd">Ausências por tipo <span id="dash-mes-label" style="color:var(--text3);font-weight:400;font-size:9px"></span></div>
+      <div class="barchart" id="dash-chart-tipo"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd">Ranking de ausências por colaborador</div>
+      <div class="barchart" id="dash-chart-colab"></div>
+    </div>
+  </div>
+
+  <div class="g2" style="margin-top:0">
+    <div class="card">
+      <div class="card-hd">Ausências por base / cidade</div>
+      <div class="barchart" id="dash-chart-base"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd">Ocorrências recentes</div>
+
+      <!-- NOVO: Ausências por Pessoa -->
+      <div class="dash-section" style="margin-top:20px;">
+        <div class="ds-hdr">
+          <span class="ds-title">AUSÊNCIAS POR COLABORADOR</span>
+          <span class="ds-sub" id="dash-mes-label2"></span>
+        </div>
+        <div id="dash-chart-pessoa" style="max-height:320px;overflow-y:auto;padding-right:4px;"></div>
+      </div>
+
+      <!-- NOVO: Ausências por Data -->
+      <div class="dash-section" style="margin-top:20px;">
+        <div class="ds-hdr">
+          <span class="ds-title">AUSÊNCIAS POR DATA</span>
+          <span class="ds-sub" id="dash-mes-label3"></span>
+        </div>
+        <div id="dash-chart-data" style="max-height:280px;overflow-y:auto;padding-right:4px;"></div>
+      </div>
+
+      <div class="tw">
+        <table><thead><tr><th>Colaborador</th><th>Evento</th><th>Data</th><th>VA</th></tr></thead>
+        <tbody id="dash-recentes"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ COLABORADORES ═══════════════════════ -->
+<div class="page" id="page-colaboradores">
+  <div class="ph">
+    <div><div class="ph-title">Colaboradores</div><div class="ph-sub">Cadastro e gestão da equipe operacional</div></div>
+    <div class="ph-actions">
+      <button class="btn btn-ghost btn-sm" onclick="exportCadExcel()">⬇ Exportar</button>
+      <button class="btn btn-cyan" onclick="openColabModal()">+ Novo Colaborador</button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:12px 16px;margin-bottom:14px">
+    <div class="fg fg4">
+      <div class="fld ac-wrap">
+        <label>Buscar por nome ou matrícula</label>
+        <input id="colab-search" type="text" placeholder="Digite nome ou matrícula..." oninput="filterColab()">
+      </div>
+      <div class="fld"><label>Município</label>
+        <select id="colab-filter-base" onchange="filterColab()">
+          <option value="">Todos</option>
+          <option>SAO JOSE RIO PRETO</option>
+          <option>MIRASSOL</option>
+          <option>BADY BASSITT</option>
+          <option>POTIRENDABA</option>
+          <option>GUARACI</option>
+          <option>GUAPIAÇU</option>
+          <option>MONTE APRAZÍVEL</option>
+          <option>NOVA GRANADA</option>
+          <option>OLIMPIA</option>
+          <option>JOSÉ BONIFACIO</option>
+          <option>CEDRAL</option>
+          <option>TANABI</option>
+        </select>
+      </div>
+      <div class="fld"><label>Situação</label>
+        <select id="colab-filter-sit" onchange="filterColab()">
+          <option value="">Todas</option><option>ATIVO</option><option>DEMITIDO</option><option>FÉRIAS</option><option>AFASTADO</option>
+        </select>
+      </div>
+      <div class="fld"><label>Regra VA</label>
+        <select id="colab-filter-rv" onchange="filterColab()">
+          <option value="">Ambas</option><option value="ATUAL">ATUAL</option><option value="PROXIMO">PRÓXIMO</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0">
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Matr.</th><th>Nome</th><th>Função</th><th>Base</th>
+          <th>Admissão</th><th>Regra VA</th><th>Situação</th><th>VA Atual</th><th>Editado por</th><th></th>
+        </tr></thead>
+        <tbody id="colab-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ EVENTOS ═══════════════════════ -->
+<div class="page" id="page-eventos">
+  <div class="ph">
+    <div><div class="ph-title">Lançamento de Eventos</div><div class="ph-sub">Faltas, atestados, férias e demais ocorrências</div></div>
+    <div class="ph-actions">
+      <button class="btn btn-ghost btn-sm" onclick="exportEvExcel()">⬇ Exportar</button>
+      <button class="btn btn-cyan" onclick="openEvModal()">+ Novo Evento</button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:12px 16px;margin-bottom:14px">
+    <div class="fg fg4">
+      <div class="fld">
+        <label>Buscar colaborador</label>
+        <input id="ev-search" type="text" placeholder="Nome ou matrícula..." oninput="filterEv()">
+      </div>
+      <div class="fld"><label>Tipo de evento</label>
+        <select id="ev-filter-tipo" onchange="filterEv()">
+          <option value="">Todos</option>
+          <option>ATESTADO</option><option>DECLARAÇÃO</option><option>FALTA INJUSTIFICADA</option>
+          <option>SUSPENSÃO</option><option>ADMISSÃO</option><option>DEMISSÃO</option>
+          <option>RETORNO AO TRABALHO</option><option>LICENÇA PATERNIDADE</option>
+          <option>LICENÇA MATERNIDADE</option><option>FÉRIAS</option><option>AFASTAMENTO</option>
+          <option>AFASTADO INSS</option>
+          <option>LICENÇA CASAMENTO</option>
+          <option>LICENÇA NOJO</option><option>DOMINGO TRABALHADO</option><option>FERIADO TRABALHADO</option>
+        </select>
+      </div>
+      <div class="fld"><label>Ausência?</label>
+        <select id="ev-filter-aus" onchange="filterEv()">
+          <option value="">Todas</option><option value="SIM">Sim — desconta VA</option><option value="NÃO">Não — não desconta</option>
+        </select>
+      </div>
+      <div class="fld"><label>Mês</label>
+        <input id="ev-filter-mes" type="month" onchange="filterEv()">
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0">
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>Matr.</th><th>Colaborador</th><th>Data / Período</th><th>Evento</th><th>Just./VA</th><th>Observação</th><th>Mês Ref.</th><th></th>
+        </tr></thead>
+        <tbody id="ev-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ CALENDÁRIO ═══════════════════════ -->
+<div class="page" id="page-calendario">
+  <div class="ph">
+    <div><div class="ph-title">Calendário Operacional</div><div class="ph-sub">Configure feriados e dias trabalhados — clique no dia para alternar</div></div>
+    <div class="ph-actions">
+      <span class="bdg bd-teal" style="font-size:10px">■ Conta VA</span>
+      <span class="bdg bd-amber" style="font-size:10px">■ Feriado</span>
+      <span class="bdg bd-rose" style="font-size:10px">■ Dom.</span>
+      <span class="bdg bd-cyan" style="font-size:10px">■ Dom./Fer. Trabalhado</span>
+    </div>
+  </div>
+
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd">
+        <div class="cal-nav">
+          <button class="btn btn-ghost btn-sm" onclick="calPrev()">‹</button>
+          <span class="cal-nav-title" id="cal-title">—</span>
+          <button class="btn btn-ghost btn-sm" onclick="calNext()">›</button>
+        </div>
+      </div>
+      <div class="cal-g" id="cal-dhs">
+        <div class="cal-dh">Dom</div><div class="cal-dh">Seg</div><div class="cal-dh">Ter</div>
+        <div class="cal-dh">Qua</div><div class="cal-dh">Qui</div><div class="cal-dh">Sex</div>
+        <div class="cal-dh">Sáb</div>
+      </div>
+      <div class="cal-g" id="cal-body" style="margin-top:3px"></div>
+    </div>
+    <div class="card">
+      <div class="card-hd">Resumo do mês</div>
+      <div id="cal-resumo"></div>
+      <div class="div"></div>
+      <div class="card-hd">Legenda de interação</div>
+      <div style="display:flex;flex-direction:column;gap:8px;font-size:11px;color:var(--text2)">
+        <div>🟦 <strong>Dia normal / Sábado</strong> → clique: marca feriado trabalhado (conta VA)</div>
+        <div>🟧 <strong>Feriado trabalhado</strong> → clique: marca feriado NÃO trabalhado (não conta)</div>
+        <div>🔴 <strong>Feriado não trabalhado</strong> → clique: volta ao normal</div>
+        <div>⬛ <strong>Domingo</strong> → clique: marca como trabalhado (conta VA)</div>
+        <div>🟦 <strong>Domingo trabalhado</strong> → clique: volta a domingo normal</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ CONFIG ═══════════════════════ -->
+<div class="page" id="page-config">
+  <div class="ph">
+    <div><div class="ph-title">Configurações</div><div class="ph-sub">Competências, regras e dados do sistema</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-hd">Competências e Regras</div>
+      <div class="fg fg2">
+        <div class="fld"><label>Competência Atual</label><input id="cfg-atual" type="month"></div>
+        <div class="fld"><label>Competência Próxima</label><input id="cfg-prox" type="month"></div>
+      </div>
+      <div class="fg fg3">
+        <div class="fld"><label>Dias Úteis — Atual</label><input id="cfg-du-atual" type="number" min="1" max="31" value="25"></div>
+        <div class="fld"><label>Dias Úteis — Próxima</label><input id="cfg-du-prox" type="number" min="1" max="31" value="25"></div>
+        <div class="fld"><label>Data de Corte VA</label><input id="cfg-corte" type="date" value="2015-06-01"></div>
+      </div>
+      <div class="fg fg2">
+        <div class="fld"><label>Escritório / Base</label><input id="cfg-base" type="text" placeholder="S. JOSÉ DO RIO PRETO"></div>
+        <div class="fld"><label>Coordenador</label><input id="cfg-coord" type="text"></div>
+      </div>
+      <button class="btn btn-cyan" onclick="saveConfig()">💾 Salvar Configurações</button>
+    </div>
+    <div class="card">
+      <div class="card-hd">Dados do Sistema</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn btn-ghost" onclick="backupJSON()">⬇ Backup completo (JSON)</button>
+        <button class="btn btn-ghost" onclick="document.getElementById('imp-file').click()">⬆ Restaurar backup</button>
+        <input type="file" id="imp-file" accept=".json" style="display:none" onchange="restoreJSON(event)">
+        <div class="div"></div>
+        <button class="btn btn-danger" onclick="clearAll()">🗑 Limpar todos os dados</button>
+      </div>
+      <div class="div"></div>
+      <div style="font-size:10px;color:var(--text3);line-height:1.8">
+        Os dados são salvos no armazenamento local do navegador.<br>
+        Use o backup JSON para migrar entre computadores.<br>
+        Estrutura preparada para integração futura com Supabase/Firebase.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ PAINEL ADMIN ═══════════════ -->
+<div class="page" id="page-admin">
+  <div class="ph">
+    <div><div class="ph-title">🔐 Painel Administrativo</div><div class="ph-sub">Acesso exclusivo — Jefferson</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-hd" style="margin-bottom:14px;">
+      <span class="card-title">👥 Gerenciar Usuários</span>
+      <button class="btn btn-primary btn-sm" onclick="abrirModalNovoUsuario()">+ Novo Usuário</button>
+    </div>
+    <div id="admin-usuarios-lista"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hd" style="margin-bottom:14px;">
+      <span class="card-title">📋 Log de Auditoria</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select id="audit-filtro-user" onchange="renderAuditoria()" style="padding:5px 8px;background:var(--sf2);border:1px solid var(--bdr2);border-radius:6px;color:var(--text);font-size:11px;">
+          <option value="">Todos</option>
+          <option value="danielle">Danielle</option>
+          <option value="gustavo">Gustavo</option>
+          <option value="jefferson">Jefferson</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="limparAuditoria()">🗑 Limpar</button>
+      </div>
+    </div>
+    <div id="admin-audit-lista" style="max-height:400px;overflow-y:auto;"></div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════ PRÉVIA FINAL ═══════════════════════ -->
+<div class="page" id="page-previa">
+  <div class="ph">
+    <div><div class="ph-title">Prévia da Folha de Pagamento</div><div class="ph-sub" id="pv-sub">—</div></div>
+    <div class="ph-actions">
+      <button class="btn btn-success" onclick="exportPreviaExcel()">⬇ Exportar Excel (molde)</button>
+    </div>
+  </div>
+
+  <div class="card" style="padding:14px 18px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px">ESCRITÓRIO / BASE</div>
+        <div style="font-family:var(--disp);font-weight:700;font-size:16px;margin-top:3px" id="pv-base">—</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px" id="pv-coord">—</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;text-align:right">CONTRATO / MÊS REF.</div>
+        <div style="font-family:var(--disp);font-weight:700;font-size:16px;margin-top:3px;text-align:right" id="pv-ref">—</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;text-align:right">LEC / CPFL PAULISTA</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sg sg5" id="pv-stats" style="margin-bottom:14px"></div>
+
+  <div class="card" style="padding:0">
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>Cod</th>
+            <th>Nome do Colaborador</th>
+            <th>Função</th>
+            <th>Local</th>
+            <th style="text-align:center">ANT JUN/15<br><span style="color:var(--text3);font-size:8px">DEP JUN/15</span></th>
+            <th>C/C</th>
+            <th>HE 50%</th>
+            <th>HE 100%</th>
+            <th>PERI</th>
+            <th>FTA Just.</th>
+            <th>FTA N.Just.</th>
+            <th>V.A</th>
+            <th>CPP</th>
+            <th>OBSERVAÇÃO</th>
+          </tr>
+        </thead>
+        <tbody id="pv-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /app -->
+
+<!-- ═══════════════════════ MODAIS ═══════════════════════ -->
+
+<!-- Modal Colaborador -->
+<div class="mo" id="mo-colab">
+  <div class="mo-box">
+    <div class="mo-title"><span id="mo-colab-title">Novo Colaborador</span><span class="mo-close" onclick="closeModal('mo-colab')">✕</span></div>
+    <div class="fg fg3">
+      <div class="fld"><label>Matrícula</label><input id="mc-matr" type="text" placeholder="00000"></div>
+      <div class="fld" style="grid-column:span 2"><label>Nome Completo</label><input id="mc-nome" type="text" placeholder="NOME EM MAIÚSCULAS"></div>
+    </div>
+    <div class="fg fg3">
+      <div class="fld"><label>Função</label>
+        <select id="mc-func">
+          <option>LEIT/ ENT.</option><option>LEIT/ ENT.  MOT.</option>
+          <option>LEIT. DE INST. ESP</option><option>AGENTE COMERCIAL</option>
+          <option>SUPERVISOR</option><option>AUXILIAR ADMINISTRATIVO</option>
+        </select>
+      </div>
+      <div class="fld"><label>Base / Cidade</label>
+        <select id="mc-base">
+          <option>SAO JOSE RIO PRETO</option><option>MIRASSOL</option><option>BADY BASSITT</option>
+          <option>POTIRENDABA</option><option>GUARACI</option><option>GUAPIAÇU</option>
+          <option>MONTE APRAZÍVEL</option><option>NOVA GRANADA</option><option>OLIMPIA</option>
+          <option>JOSÉ BONIFACIO</option><option>CEDRAL</option><option>TANABI</option>
+        </select>
+      </div>
+      <div class="fld"><label>Data de Admissão</label><input id="mc-adm" type="date"></div>
+    </div>
+    <div class="fg fg2">
+      <div class="fld"><label>Situação</label>
+        <select id="mc-sit">
+          <option>ATIVO</option><option>DEMITIDO</option><option>FÉRIAS</option><option>AFASTADO</option>
+        </select>
+      </div>
+      <div class="fld"><label>C/C</label><input id="mc-cc" type="text" placeholder="74" value="74"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <div style="margin-bottom:8px;width:100%;">
+        <label style="display:block;font-size:11px;color:var(--rose);font-weight:700;margin-bottom:4px;">EDITADO POR <span style="color:var(--rose)">*</span></label>
+        <input id="mc-editado-por" type="text" placeholder="Seu nome (obrigatório)" style="width:100%;padding:8px 10px;background:var(--sf2);border:1px solid var(--rose);border-radius:6px;color:var(--text);font-size:12px;">
+      </div>
+      <button class="btn btn-cyan" onclick="saveColab()">💾 Salvar</button>
+      <button class="btn btn-ghost" onclick="closeModal('mo-colab')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Evento -->
+<div class="mo" id="mo-ev">
+  <div class="mo-box" style="width:min(640px,96vw)">
+    <div class="mo-title"><span id="mo-ev-title">Lançar Evento</span><span class="mo-close" onclick="closeModal('mo-ev')">✕</span></div>
+    <input type="hidden" id="ev-edit-idx" value="-1">
+
+    <!-- Colaborador -->
+    <div class="fg fg2" style="margin-bottom:12px">
+      <div class="fld">
+        <label>Colaborador</label>
+        <div class="ac-wrap">
+          <input id="ev-nome-input" type="text" placeholder="Digite nome ou matrícula..." oninput="acEv(this.value)" autocomplete="off">
+          <div class="ac-list" id="ev-ac-list"></div>
+        </div>
+        <input type="hidden" id="ev-nome-val">
+        <input type="hidden" id="ev-matr-val">
+      </div>
+      <div class="fld"><label>Tipo de Evento</label>
+        <select id="ev-tipo" onchange="onEvTipo()">
+          <option>ATESTADO</option><option>DECLARAÇÃO</option><option>FALTA INJUSTIFICADA</option>
+          <option>SUSPENSÃO</option><option>ADMISSÃO</option><option>DEMISSÃO</option>
+          <option>RETORNO AO TRABALHO</option><option>LICENÇA PATERNIDADE</option>
+          <option>LICENÇA MATERNIDADE</option><option>FÉRIAS</option><option>AFASTAMENTO</option>
+          <option>AFASTADO INSS</option>
+          <option>LICENÇA CASAMENTO</option>
+          <option>LICENÇA NOJO</option><option>DOMINGO TRABALHADO</option><option>FERIADO TRABALHADO</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Datas: único dia OU período -->
+    <div style="background:var(--sf2);border:1px solid var(--bdr);border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">📅 Período da ocorrência</div>
+      <div class="fg fg3">
+        <div class="fld"><label>Data Início</label><input id="ev-data-ini" type="date" onchange="onDataChange()"></div>
+        <div class="fld"><label>Data Fim <span style="color:var(--text3);font-weight:400">(opcional)</span></label><input id="ev-data-fim" type="date" onchange="onDataChange()"></div>
+        <div class="fld"><label>Dias de ausência</label>
+          <input id="ev-dias-count" type="text" readonly style="background:var(--sf3);cursor:default;color:var(--cyan);font-weight:700;font-family:var(--mono)">
+        </div>
+      </div>
+    </div>
+
+    <!-- Justificativa + Ausência + Obs -->
+    <div class="fg fg3">
+      <div class="fld" id="ev-just-wrap">
+        <label>Justificativa</label>
+        <select id="ev-justificada">
+          <option value="SIM">SIM — com justificativa</option>
+          <option value="NÃO">NÃO — sem justificativa</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label>Desconta VA?</label>
+        <select id="ev-ausencia">
+          <option value="SIM">SIM — desconta VA</option>
+          <option value="NÃO">NÃO — não desconta</option>
+        </select>
+      </div>
+      <div class="fld"><label>Observação</label><input id="ev-obs" type="text" placeholder="Detalhe adicional..."></div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-cyan" onclick="saveEv()">💾 Salvar</button>
+      <button class="btn btn-ghost" onclick="closeModal('mo-ev')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+// ═══════════════════════════════════════════════════
+// STATE & STORAGE
+// ═══════════════════════════════════════════════════
+let DB = {
+  cadastro: [],
+  eventos: [],
+  calendario: {}, // key: "YYYY-MM-DD" → {tipo,contaVA,obs}
+  config: {
+    competenciaAtual: '',
+    competenciaProxima: '',
+    duAtual: 25,
+    duProximo: 25,
+    dataCorte: '2015-06-01',
+    base: 'S. JOSÉ DO RIO PRETO',
+    coordenador: ''
+  }
+};
+let editColabIdx = -1;
+let calYear = 0, calMonth = 0;
+
+// Flag global — bloqueia save() até DB estar carregado do servidor
+let DB_READY = false;
+
+function save() {
+  // Bloquear save antes do DB estar pronto
+  if (!DB_READY) {
+    console.warn('save() bloqueado — DB_READY=false');
+    return;
+  }
+  console.log('save() executado — cadastro:', DB.cadastro.length, 'eventos:', DB.eventos.length);
+  // Registrar última edição
+  const userLogado = sessionStorage.getItem('fpd_user') || 'usuário';
+  const agora = new Date();
+  const registro = {
+    usuario: userLogado,
+    data: agora.toLocaleDateString('pt-BR'),
+    hora: agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) + 'h'
+  };
+  localStorage.setItem('fpd_rp_ultima_edicao', JSON.stringify(registro));
+  atualizarCardUltimaEdicao(registro);
+
+  // Salvar no localStorage
+  try {
+    localStorage.setItem('fpd_rp_data', JSON.stringify({
+      cadastro: DB.cadastro,
+      eventos: DB.eventos,
+      calendario: DB.calendario,
+      config: DB.config
+    }));
+  } catch(e) { console.warn('Erro ao salvar:', e); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL DETALHE DOS CARDS DO DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL — AUSENTES POR DATA
+// ═══════════════════════════════════════════════════════════════
+function verAusentesPorData(data, dataFmt) {
+  const evDodia = DB.eventos.filter(e => {
+    if (!e.data) return false;
+    const ini = e.data;
+    const fim = e.dataFim || e.data;
+    return ini <= data && data <= fim;
+  });
+
+  const linhas = evDodia.length === 0
+    ? '<div class="modal-card-empty">Nenhum ausente encontrado</div>'
+    : evDodia.map(e => {
+        const periodo = e.dataFim && e.dataFim !== e.data
+          ? fmtDate(e.data) + ' a ' + fmtDate(e.dataFim)
+          : fmtDate(e.data);
+        return `
+          <div class="modal-card-row">
+            <span class="modal-card-nome">${e.nome}</span>
+            <span class="modal-card-tipo">${e.tipo}</span>
+            <span class="modal-card-data">${periodo}</span>
+          </div>`;
+      }).join('');
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-card-overlay';
+  modal.id = 'modal-ausentes-data';
+  modal.innerHTML = `
+    <div class="modal-card-box">
+      <div class="modal-card-hdr">
+        <span class="modal-card-title">📅 Ausentes em ${dataFmt}</span>
+        <button class="modal-card-close" onclick="document.getElementById('modal-ausentes-data').remove()">✕</button>
+      </div>
+      <div class="modal-card-body">${linhas}</div>
+      <div class="modal-card-footer">Total: <strong style="color:var(--cyan)">${evDodia.length} registro${evDodia.length>1?'s':''}</strong></div>
+    </div>`;
+
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  document.getElementById('modal-ausentes-data')?.remove();
+  document.body.appendChild(modal);
+}
+
+
+function abrirModalCard(tipo, titulo) {
+  const data = window._dashData ? window._dashData[tipo] : [];
+  if (!data) return;
+
+  const linhas = data.length === 0
+    ? `<div class="modal-card-empty">📭 Nenhum registro encontrado</div>`
+    : data.map(item => {
+        const periodo = item.dataFim && item.dataFim !== item.data
+          ? fmtDate(item.data) + ' a ' + fmtDate(item.dataFim)
+          : item.data ? fmtDate(item.data) : '—';
+        const diasStr = item.dias > 0 ? `<span class="modal-card-dias">${item.dias} dia${item.dias > 1 ? 's' : ''}</span>` : '';
+        return `
+          <div class="modal-card-row">
+            <span class="modal-card-nome">${item.nome}</span>
+            <span class="modal-card-tipo">${item.tipo || ''}</span>
+            <span class="modal-card-data">${periodo}</span>
+            ${diasStr}
+          </div>`;
+      }).join('');
+
+  const total = data.reduce((s, i) => s + (i.dias || 0), 0);
+  const rodape = total > 0
+    ? `Total: <strong style="color:var(--cyan)">${data.length} registro${data.length>1?'s':''}</strong> · <strong style="color:var(--cyan)">${total} dias</strong>`
+    : `Total: <strong style="color:var(--cyan)">${data.length} registro${data.length>1?'s':''}</strong>`;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-card-overlay';
+  modal.id = 'modal-card-detalhe';
+  modal.innerHTML = `
+    <div class="modal-card-box">
+      <div class="modal-card-hdr">
+        <span class="modal-card-title">🔍 ${titulo}</span>
+        <button class="modal-card-close" onclick="fecharModalCard()">✕</button>
+      </div>
+      <div class="modal-card-body">${linhas}</div>
+      <div class="modal-card-footer">${rodape}</div>
+    </div>`;
+
+  modal.addEventListener('click', e => { if (e.target === modal) fecharModalCard(); });
+  document.body.appendChild(modal);
+}
+
+function fecharModalCard() {
+  const el = document.getElementById('modal-card-detalhe');
+  if (el) el.remove();
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════════
+// Usuários gerenciados pelo servidor — sem senhas no frontend
+const _USERS = {};
+
+
+function registrarUltimaEdicao(usuario) {
+  // Sempre pega o usuário da sessão atual (quem está logado)
+  const userLogado = sessionStorage.getItem('fpd_user') || usuario || 'desconhecido';
+  const agora = new Date();
+  const data = agora.toLocaleDateString('pt-BR');
+  const hora = agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) + 'h';
+  const registro = { usuario: userLogado, data, hora, ts: agora.toISOString() };
+  localStorage.setItem('fpd_rp_ultima_edicao', JSON.stringify(registro));
+  atualizarCardUltimaEdicao(registro);
+}
+
+function atualizarCardUltimaEdicao(registro) {
+  if (!registro) {
+    const saved = localStorage.getItem('fpd_rp_ultima_edicao');
+    if (saved) registro = JSON.parse(saved);
+  }
+  if (!registro) return;
+  const ue = document.getElementById('ue-usuario');
+  const ud = document.getElementById('ue-datahora');
+  if (ue) ue.textContent = registro.usuario;
+  if (ud) ud.textContent = registro.data + ' às ' + registro.hora;
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// SISTEMA DE AUDITORIA
+// ═══════════════════════════════════════════════════════════════
+function registrarAuditoria(usuario, acao, detalhe) {
+  const nome = _USERS[usuario]?.name || usuario;
+  const agora = new Date();
+  const registro = {
+    ts: agora.toISOString(),
+    data: agora.toLocaleDateString('pt-BR'),
+    hora: agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) + 'h',
+    usuario,
+    nome,
+    acao,
+    detalhe
+  };
+  const logs = JSON.parse(localStorage.getItem('fpd_rp_auditoria') || '[]');
+  logs.unshift(registro); // mais recente primeiro
+  if (logs.length > 500) logs.splice(500); // máximo 500 registros
+  localStorage.setItem('fpd_rp_auditoria', JSON.stringify(logs));
+}
+
+function getAuditoria() {
+  return JSON.parse(localStorage.getItem('fpd_rp_auditoria') || '[]');
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// PAINEL ADMIN — FUNÇÕES
+// ═══════════════════════════════════════════════════════════════
+
+// Usuários dinâmicos (começa com os padrão + podem ser adicionados)
+if (!localStorage.getItem('fpd_rp_users')) {
+  localStorage.setItem('fpd_rp_users', JSON.stringify({
+    'jefferson': { pwd: '8eabf2e65884823289a73b13b6609491c8a47947057aa0589ac8f8f1cc0f7f4e', name: 'Jefferson', role: 'ADMIN', email: 'jefferson@grupotcm.com.br', ativo: true },
+    'daniel':    { pwd: 'e243c84e88b0e6908d4cb5fd7e767f785b5c9ace0e1c43ce219204c0ee573ab5', name: 'Daniel', role: 'OPERADOR', email: '', ativo: true },
+    'fernando':  { pwd: '763945351f46a63e37cf620e32cd90450489abc3bab095238121ace8b94e68f2', name: 'Fernando', role: 'OPERADOR', email: '', ativo: true },
+    'luan':      { pwd: '4c6c4e9949ae5682eb1a9d31765adfebda9dee1e46aa5f81fd5866ee0cf32023', name: 'Luan', role: 'OPERADOR', email: '', ativo: true }
+  }));
+}
+
+function getUsers() {
+  return JSON.parse(localStorage.getItem('fpd_rp_users') || '{}');
+}
+
+function saveUsers(users) {
+  localStorage.setItem('fpd_rp_users', JSON.stringify(users));
+  // Sincronizar com _USERS em memória
+  Object.keys(users).forEach(u => {
+    _USERS[u] = { pwd: users[u].pwd, name: users[u].name, role: users[u].role, email: users[u].email };
+  });
+}
+
+function renderAdminPage() {
+  renderUsuarios();
+  renderAuditoria();
+}
+
+function renderUsuarios() {
+  // Usuários fixos + localStorage
+  const _base = {
+    'jefferson': { name: 'Jefferson', email: 'jefferson@grupotcm.com.br', role: 'ADMIN', ativo: true },
+    'assistente': { name: 'Assistente', email: '', role: 'OPERADOR', ativo: true },
+    'daniel':    { name: 'Daniel', email: '', role: 'OPERADOR', ativo: true },
+    'fernando':  { name: 'Fernando', email: '', role: 'OPERADOR', ativo: true },
+    'luan':      { name: 'Luan', email: '', role: 'OPERADOR', ativo: true }
+  };
+  const saved = getUsers();
+  const users = { ..._base };
+  // Sobrescrever com dados salvos (ex: senha resetada, desativado)
+  Object.keys(saved).forEach(u => {
+    if (users[u]) users[u] = { ...users[u], ...saved[u] };
+    else users[u] = saved[u];
+  });
+  const lista = document.getElementById('admin-usuarios-lista');
+  if (!lista) return;
+
+  lista.innerHTML = Object.entries(users).map(([username, u]) => `
+    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bdr);">
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--b400),var(--cyan));display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;">
+        ${u.name.charAt(0)}
+      </div>
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:13px;">${u.name}</div>
+        <div style="font-size:11px;color:var(--text2);">@${username} · ${u.email || '—'}</div>
+      </div>
+      <span class="bdg ${u.role === 'ADMIN' ? 'bd-blue' : 'bd-teal'}">${u.role}</span>
+      <span class="bdg ${u.ativo !== false ? 'bd-green' : 'bd-rose'}">${u.ativo !== false ? 'Ativo' : 'Inativo'}</span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-ghost btn-sm" onclick="resetarSenha('${username}')" title="Resetar senha">🔑</button>
+        <button class="btn btn-ghost btn-sm" onclick="editarUsuario('${username}')" title="Editar">✏</button>
+        ${username !== 'jefferson' ? `<button class="btn btn-ghost btn-sm" style="color:var(--rose)" onclick="toggleUsuario('${username}')" title="${u.ativo !== false ? 'Desativar' : 'Ativar'}">${u.ativo !== false ? '⏸' : '▶'}</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAuditoria() {
+  const logs = getAuditoria();
+  const filtro = document.getElementById('audit-filtro-user')?.value || '';
+  const lista = document.getElementById('admin-audit-lista');
+  if (!lista) return;
+
+  const filtrados = filtro ? logs.filter(l => l.usuario === filtro) : logs;
+
+  if (!filtrados.length) {
+    lista.innerHTML = '<div class="empty" style="padding:20px;text-align:center;color:var(--text2);">Nenhum registro de auditoria</div>';
+    return;
+  }
+
+  const ACAO_COR = {
+    'LOGIN': 'bd-teal', 'LOGOUT': 'bd-gray',
+    'COLABORADOR CRIADO': 'bd-blue', 'COLABORADOR EDITADO': 'bd-cyan', 'COLABORADOR DELETADO': 'bd-rose',
+    'EVENTO CRIADO': 'bd-blue', 'EVENTO EDITADO': 'bd-cyan', 'EVENTO DELETADO': 'bd-rose'
+  };
+
+  lista.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <thead>
+        <tr>
+          <th style="padding:8px;text-align:left;color:var(--text2);border-bottom:1px solid var(--bdr);font-size:10px;">DATA/HORA</th>
+          <th style="padding:8px;text-align:left;color:var(--text2);border-bottom:1px solid var(--bdr);font-size:10px;">USUÁRIO</th>
+          <th style="padding:8px;text-align:left;color:var(--text2);border-bottom:1px solid var(--bdr);font-size:10px;">AÇÃO</th>
+          <th style="padding:8px;text-align:left;color:var(--text2);border-bottom:1px solid var(--bdr);font-size:10px;">DETALHE</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filtrados.map(l => `
+          <tr style="border-bottom:1px solid rgba(255,255,255,.03);">
+            <td style="padding:7px 8px;color:var(--text2);white-space:nowrap;">${l.data} ${l.hora}</td>
+            <td style="padding:7px 8px;font-weight:600;">${l.nome || l.usuario}</td>
+            <td style="padding:7px 8px;"><span class="bdg ${ACAO_COR[l.acao] || 'bd-gray'}" style="font-size:9px;">${l.acao}</span></td>
+            <td style="padding:7px 8px;color:var(--text2);">${l.detalhe || '—'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+}
+
+function abrirModalNovoUsuario() {
+  document.getElementById('mo-admin-title').textContent = 'Novo Usuário';
+  document.getElementById('au-username').value = '';
+  document.getElementById('au-name').value = '';
+  document.getElementById('au-pwd').value = '';
+  document.getElementById('au-email').value = '';
+  document.getElementById('au-role').value = 'OPERADOR';
+  document.getElementById('au-username').disabled = false;
+  document.getElementById('mo-admin-user').classList.add('open');
+}
+
+let _editUser = null;
+function editarUsuario(username) {
+  const users = getUsers();
+  const u = users[username];
+  _editUser = username;
+  document.getElementById('mo-admin-title').textContent = 'Editar Usuário';
+  document.getElementById('au-username').value = username;
+  document.getElementById('au-username').disabled = true;
+  document.getElementById('au-name').value = u.name;
+  document.getElementById('au-pwd').value = '';
+  document.getElementById('au-email').value = u.email || '';
+  document.getElementById('au-role').value = u.role;
+  document.getElementById('mo-admin-user').classList.add('open');
+}
+
+function salvarUsuario() {
+  const username = document.getElementById('au-username').value.trim().toLowerCase();
+  const name = document.getElementById('au-name').value.trim();
+  const pwd = document.getElementById('au-pwd').value;
+  const email = document.getElementById('au-email').value.trim();
+  const role = document.getElementById('au-role').value;
+
+  if (!username || !name) { toast('Preencha usuário e nome!', 'err'); return; }
+
+  // Novo usuário: senha obrigatória
+  if (!_editUser && !pwd) { toast('Informe uma senha para o novo usuário!', 'err'); return; }
+  if (pwd && pwd.length < 6) { toast('Senha mínimo 6 caracteres!', 'err'); return; }
+
+  const users = getUsers();
+  const pwdFinal = pwd ? btoa(pwd) : (users[username]?.pwd || _USERS[username]?.pwd || btoa('lec2024'));
+
+  users[username] = {
+    ...users[username],
+    name, email, role, ativo: true,
+    pwd: pwdFinal
+  };
+
+  // Atualizar _USERS em memória para login funcionar imediatamente
+  _USERS[username] = { pwd: pwdFinal, name, role, email };
+
+  saveUsers(users);
+  closeModal('mo-admin-user');
+  renderUsuarios();
+  registrarAuditoria(sessionStorage.getItem('fpd_user'), _editUser ? 'USUÁRIO EDITADO' : 'USUÁRIO CRIADO', name + ' (@' + username + ')');
+  toast(_editUser ? 'Usuário atualizado!' : 'Usuário criado com sucesso!', 'ok');
+  _editUser = null;
+}
+
+function resetarSenha(username) {
+  const users = getUsers();
+  const u = users[username];
+  const novaSenha = prompt(`Nova senha para ${u.name}:`);
+  if (!novaSenha) return;
+  if (novaSenha.length < 6) { toast('Mínimo 6 caracteres!', 'err'); return; }
+  users[username].pwd = btoa(novaSenha);
+  saveUsers(users);
+  // Atualizar _USERS em memória
+  _USERS[username].pwd = btoa(novaSenha);
+  registrarAuditoria(sessionStorage.getItem('fpd_user'), 'SENHA RESETADA', u.name + ' (@' + username + ')');
+  toast('Senha de ' + u.name + ' resetada!', 'ok');
+  renderUsuarios();
+}
+
+function toggleUsuario(username) {
+  const users = getUsers();
+  users[username].ativo = !users[username].ativo;
+  saveUsers(users);
+  registrarAuditoria(sessionStorage.getItem('fpd_user'), users[username].ativo ? 'USUÁRIO ATIVADO' : 'USUÁRIO DESATIVADO', users[username].name);
+  toast(users[username].ativo ? 'Usuário ativado!' : 'Usuário desativado!', 'ok');
+  renderUsuarios();
+}
+
+function limparAuditoria() {
+  if (!confirm('Limpar todo o histórico de auditoria?')) return;
+  localStorage.removeItem('fpd_rp_auditoria');
+  renderAuditoria();
+  toast('Auditoria limpa!', 'ok');
+}
+
+// Carregar usuários do localStorage ao iniciar (sem salvar)
+(function syncUsers() {
+  try {
+    const saved = getUsers();
+    if (Object.keys(saved).length > 0) {
+      Object.keys(saved).forEach(u => {
+        _USERS[u] = saved[u];
+      });
+    }
+  } catch(e) {}
+})();
+
+
+// SHA-256 via Web Crypto API
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function fazerLogin() {
+  const u = document.getElementById('login-user').value.trim().toLowerCase();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+
+  if (!u || !p) { err.textContent = 'Preencha usuário e senha'; return; }
+
+  const users = getUsers();
+  const user = users[u];
+  if (!user || user.ativo === false) { err.textContent = 'Usuário ou senha incorretos'; document.getElementById('login-pass').value = ''; return; }
+  // Verificar senha via SHA-256
+  const hashSenha = await sha256(p);
+  if (user.pwd !== hashSenha) { err.textContent = 'Usuário ou senha incorretos'; document.getElementById('login-pass').value = ''; return; }
+
+  sessionStorage.setItem('fpd_user', u);
+  sessionStorage.setItem('fpd_role', user.role || 'OPERADOR');
+  sessionStorage.setItem('fpd_name', user.name || u);
+  document.getElementById('login-screen').style.display = 'none';
+  document.body.style.overflow = '';
+  updateHeader();
+  aplicarPermissoes();
+  const tbUser = document.getElementById('tb-user-nome');
+  if (tbUser) tbUser.textContent = user.name;
+  registrarAuditoria(u, 'LOGIN', 'Acesso ao sistema');
+  toast('Bem-vindo, ' + user.name + '!', 'ok');
+  err.textContent = '';
+  load();
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// CONTROLE DE PERMISSÕES POR ROLE
+// ═══════════════════════════════════════════════════════════════
+function isAdmin() {
+  return sessionStorage.getItem('fpd_role') === 'ADMIN';
+}
+
+function isViewer() {
+  return sessionStorage.getItem('fpd_role') === 'VIEWER';
+}
+
+function aplicarPermissoes() {
+  const role = sessionStorage.getItem('fpd_role') || 'OPERADOR';
+
+  // Mostrar/esconder Painel Admin
+  const navAdmin = document.getElementById('nav-admin');
+  if (navAdmin) navAdmin.style.display = role === 'ADMIN' ? 'flex' : 'none';
+
+  // Esconder menu Configurações para não-admins
+  // Esconder config para não-admins via ID
+  const navConfig = document.querySelector('[onclick*="config"]');
+  if (navConfig) navConfig.style.display = role === 'ADMIN' ? '' : 'none';
+
+  // Esconder botão Exportar colaboradores para não-admins
+  const btnExport = document.querySelector('[onclick*="exportCad"]');
+  if (btnExport) btnExport.style.display = role === 'ADMIN' ? '' : 'none';
+}
+
+
+function fazerLogout() {
+  if (!confirm('Deseja sair do sistema?')) return;
+  const _uLog = sessionStorage.getItem('fpd_user');
+  if (_uLog) registrarAuditoria(_uLog, 'LOGOUT', 'Saiu do sistema');
+  sessionStorage.clear();
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-err').textContent = '';
+  document.body.style.overflow = 'hidden';
+}
+
+function verificarLogin() {
+  const u = sessionStorage.getItem('fpd_user');
+  if (u) {
+    const users = getUsers();
+    const user = users[u];
+    if (user && user.ativo !== false) {
+      document.getElementById('login-screen').style.display = 'none';
+      const tbUser = document.getElementById('tb-user-nome');
+      if (tbUser) tbUser.textContent = user.name;
+      aplicarPermissoes();
+      load();
+      return;
+    }
+  }
+  document.getElementById('login-screen').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+document.addEventListener('keypress', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    fazerLogin();
+  }
+});
+
+
+function load() {
+  try {
+    const saved = localStorage.getItem('fpd_rp_data');
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data && data.cadastro && data.cadastro.length > 0) {
+        DB.cadastro = data.cadastro;
+        DB.eventos = data.eventos || [];
+        DB.calendario = data.calendario || {};
+        if (data.config) DB.config = Object.assign(DB.config, data.config);
+      }
+    }
+    if (DB.cadastro.length === 0) {
+      DB.cadastro = COLABORADORES_PLANILHA.map(c => ({...c}));
+      DB.eventos = EVENTOS_INICIAIS.map(e => ({...e}));
+      DB.config.competenciaAtual = DB.config.competenciaAtual || '2026-05';
+      DB.config.competenciaProxima = DB.config.competenciaProxima || '2026-06';
+      DB.config.duAtual = DB.config.duAtual || 22;
+      DB.config.duProximo = DB.config.duProximo || 22;
+      DB.config.dataCorte = DB.config.dataCorte || '2015-06-01';
+      DB.config.base = DB.config.base || 'S. JOSÉ DO RIO PRETO';
+    }
+  } catch(e) { console.warn('Erro ao carregar:', e); }
+  DB_READY = true;
+  popularFeriadosNoCalendario();
+  updateHeader();
+  renderDash();
+  const el = document.getElementById('ev-filter-mes');
+  if (el && DB.config.competenciaAtual) el.value = DB.config.competenciaAtual;
+}
+
+// ═══════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════
+const MESES = ['','JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+const MESES_FULL = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function fmtDate(s) {
+  if (!s) return '';
+  const d = new Date(s + 'T12:00:00');
+  return d.toLocaleDateString('pt-BR');
+}
+function fmtMes(ym) {
+  if (!ym) return '—';
+  const [y, m] = ym.split('-');
+  return MESES[+m] + '/' + y;
+}
+function fmtMesFull(ym) {
+  if (!ym) return '—';
+  const [y, m] = ym.split('-');
+  return MESES_FULL[+m] + ' ' + y;
+}
+function getRegraVA(admStr) {
+  if (!admStr) return 'ATUAL';
+  return admStr < DB.config.dataCorte ? 'PROXIMO' : 'ATUAL';
+}
+function getCompetenciaColaborador(admStr) {
+  const regra = getRegraVA(admStr);
+  return regra === 'PROXIMO' ? DB.config.competenciaProxima : DB.config.competenciaAtual;
+}
+function getDuColaborador(admStr) {
+  const regra = getRegraVA(admStr);
+  return regra === 'PROXIMO' ? (DB.config.duProximo || 25) : (DB.config.duAtual || 25);
+}
+function getEvDoMes(nomeOrMatr, comp) {
+  if (!comp) return [];
+  const [cy, cm] = comp.split('-').map(Number);
+  const inicioMes = comp + '-01';
+  const fimMes = new Date(cy, cm, 0).toISOString().slice(0,10);
+  return DB.eventos.filter(ev => {
+    const match = ev.nome === nomeOrMatr || String(ev.matr) === String(nomeOrMatr);
+    if (!match) return false;
+    if (!ev.data) return false;
+    const fim = ev.dataFim || ev.data;
+    // O evento pertence ao mês se: início <= fimMes E fim >= inicioMes
+    return ev.data <= fimMes && fim >= inicioMes;
+  });
+}
+function getDiasUteisAPartirDe(dataAdmStr, comp) {
+  // Conta dias úteis (seg-sab, excluindo dom) no mês competência a partir da admissão
+  if (!comp) return 0;
+  const [cy, cm] = comp.split('-').map(Number);
+  const inicioMes = new Date(cy, cm-1, 1);
+  const fimMes = new Date(cy, cm, 0);
+  const admDate = dataAdmStr ? new Date(dataAdmStr + 'T12:00:00') : null;
+  const inicio = (admDate && admDate > inicioMes) ? admDate : inicioMes;
+  let count = 0;
+  for (let d = new Date(inicio); d <= fimMes; d.setDate(d.getDate()+1)) {
+    const key = d.toISOString().slice(0,10);
+    const cal = DB.calendario[key];
+    const wd = d.getDay();
+    const isDom = wd === 0;
+    const contaVA = cal !== undefined ? cal.contaVA : !isDom;
+    if (contaVA) count++;
+  }
+  return count;
+}
+function calcVA(colab) {
+  // AFASTADO INSS: VA = 0 sempre
+  const evColab = DB.eventos.filter(e => e.nome === colab.nome && TIPOS_NAO_AUSENCIA.includes(e.tipo));
+  if (evColab.length > 0) return 0;
+
+  const comp = getCompetenciaColaborador(colab.admissao);
+  const duBase = getDuColaborador(colab.admissao);
+  if (!comp) return duBase;
+
+  // Se admitido NESTE mês (competência atual), calcula proporcional
+  const compMes = comp.slice(0,7); // "2026-05"
+  const admMes = colab.admissao ? colab.admissao.slice(0,7) : null;
+  let diasBase = duBase;
+  if (admMes && admMes === DB.config.competenciaAtual) {
+    // Admitido neste mês: conta dias úteis a partir da admissão
+    diasBase = getDiasUteisAPartirDe(colab.admissao, DB.config.competenciaAtual);
+  } else if (admMes && admMes === DB.config.competenciaProxima) {
+    diasBase = getDiasUteisAPartirDe(colab.admissao, DB.config.competenciaProxima);
+  }
+
+  // Conta ausências — eventos com período expandido
+  const evs = getEvDoMes(colab.nome, comp);
+  let desc = 0;
+  evs.forEach(e => {
+    if (e.ausencia !== 'SIM') return;
+    if (e.dataFim && e.dataFim > e.data) {
+      // Período: conta dias úteis entre inicio e fim
+      desc += contarDiasUteisEntre(e.data, e.dataFim, comp);
+    } else {
+      desc += 1;
+    }
+  });
+  return Math.max(0, diasBase - desc);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FERIADOS NACIONAIS 2026-2027
+// ═══════════════════════════════════════════════════════════════
+const FERIADOS_NACIONAIS = new Set([
+  // 2026
+  '2026-01-01','2026-02-16','2026-02-17','2026-04-03','2026-04-21',
+  '2026-05-01','2026-06-04','2026-07-09','2026-09-07','2026-10-12',
+  '2026-11-02','2026-11-15','2026-11-20','2026-12-25',
+  // 2027
+  '2027-01-01','2027-02-09','2027-03-26','2027-04-21',
+  '2027-05-01','2027-05-20','2027-09-07','2027-10-12',
+  '2027-11-02','2027-11-15','2027-11-20','2027-12-25'
+]);
+
+function isDiaUtil(dateObj, key) {
+  const wd = dateObj.getDay();
+  // Domingo = nunca conta (a menos que seja DOMINGO TRABALHADO no calendário)
+  if (wd === 0) {
+    const cal = DB.calendario[key];
+    return cal && cal.tipo === 'DOMINGO TRABALHADO';
+  }
+  // Feriado nacional = não conta (a menos que esteja marcado no calendário como trabalhado)
+  if (FERIADOS_NACIONAIS.has(key)) {
+    const cal = DB.calendario[key];
+    return cal && cal.contaVA === true;
+  }
+  // Feriado local = verificar calendário
+  const cal = DB.calendario[key];
+  if (cal !== undefined) return cal.contaVA !== false;
+  return true; // dia normal
+}
+
+
+function contarDiasUteisEntre(dataIni, dataFim, comp) {
+  if (!dataIni) return 0;
+  const fim = dataFim || dataIni;
+  const [cy, cm] = comp.split('-').map(Number);
+  const fimMes = new Date(cy, cm, 0);
+  let count = 0;
+  const dt = new Date(dataIni + 'T12:00:00');
+  const dtFim = new Date(fim + 'T12:00:00');
+  while (dt <= dtFim && dt <= fimMes) {
+    const key = dt.toISOString().slice(0,10);
+    if (isDiaUtil(dt, key)) count++;
+    dt.setDate(dt.getDate()+1);
+  }
+  return count || 1;
+}
+function fmtPeriodo(ev) {
+  // Formata "DD/MM/AAAA" ou "DD/MM a DD/MM" para períodos
+  if (ev.dataFim && ev.dataFim !== ev.data) {
+    return fmtDate(ev.data) + ' a ' + fmtDate(ev.dataFim);
+  }
+  return fmtDate(ev.data);
+}
+function getObsAutomatic(colab) {
+  const comp = getCompetenciaColaborador(colab.admissao);
+  const evs = getEvDoMes(colab.nome, comp);
+  const parts = [];
+
+  // Admissão no mês
+  if (colab.admissao && DB.config.competenciaAtual && colab.admissao >= DB.config.competenciaAtual + '-01') {
+    const vaCalc = calcVA(colab);
+    const duBase = getDuColaborador(colab.admissao);
+    parts.push('ADMISSÃO ' + fmtDate(colab.admissao) + ' (' + vaCalc + '/' + duBase + ' DIAS VA)');
+  }
+
+  // Cada evento com sua data — no formato: "TIPO DATA"
+  // Ordenados por data
+  const evsOrdenados = [...evs].sort((a,b) => (a.data||'').localeCompare(b.data||''));
+  evsOrdenados.forEach(e => {
+    let label = '';
+    const per = fmtPeriodo(e);
+    if (e.tipo === 'FALTA INJUSTIFICADA') label = 'FALTA INJUSTIFICADA ' + per;
+    else if (e.tipo === 'ATESTADO') label = 'ATESTADO ' + per + (e.justificada==='SIM'?' (JUST.)':'');
+    else if (e.tipo === 'DECLARAÇÃO') label = 'DECLARAÇÃO ' + per;
+    else if (e.tipo === 'SUSPENSÃO') label = 'SUSPENSÃO ' + per;
+    else if (e.tipo === 'FÉRIAS') label = 'FÉRIAS ' + per;
+    else if (e.tipo === 'AFASTAMENTO') label = 'AFASTAMENTO ' + per;
+    else if (e.tipo === 'LICENÇA PATERNIDADE') label = 'LIC. PATERNIDADE ' + per;
+    else if (e.tipo === 'LICENÇA MATERNIDADE') label = 'LIC. MATERNIDADE ' + per;
+    else if (e.tipo === 'LICENÇA CASAMENTO') label = 'LIC. CASAMENTO ' + per;
+    else if (e.tipo === 'ADMISSÃO') return; // já tratado acima
+    else if (e.tipo === 'DEMISSÃO') label = 'DEMISSÃO ' + per;
+    else if (e.tipo === 'DOMINGO TRABALHADO') label = 'DOMINGO ' + per + ' TRABALHADO';
+    else if (e.tipo === 'FERIADO TRABALHADO') label = 'FERIADO ' + per + ' TRABALHADO';
+    else if (e.tipo === 'RETORNO AO TRABALHO') label = 'RETORNO ' + per;
+    else label = e.tipo + ' ' + per;
+    if (e.obs) label += ' [' + e.obs + ']';
+    parts.push(label);
+  });
+
+  return parts.join(' / ');
+}
+function contarDiasEvento(ev, comp) {
+  // Retorna quantos dias úteis um evento consome no mês
+  if (!ev.dataFim || ev.dataFim === ev.data) return 1;
+  return contarDiasUteisEntre(ev.data, ev.dataFim, comp);
+}
+function countFJ(colab) {
+  const comp = getCompetenciaColaborador(colab.admissao);
+  const evs = getEvDoMes(colab.nome, comp);
+  let total = 0;
+  evs.filter(e => e.tipo === 'ATESTADO' || EV_COM_JUSTIFICATIVA.includes(e.tipo))
+     .forEach(e => total += contarDiasEvento(e, comp));
+  return total;
+}
+function countFNJ(colab) {
+  const comp = getCompetenciaColaborador(colab.admissao);
+  const evs = getEvDoMes(colab.nome, comp);
+  let total = 0;
+  evs.filter(e => e.tipo === 'FALTA INJUSTIFICADA')
+     .forEach(e => total += contarDiasEvento(e, comp));
+  return total;
+}
+function isPeri(colab) {
+  return colab.funcao === 'LEIT/ ENT.  MOT.' || colab.funcao === 'LEIT. DE INST. ESP';
+}
+function toast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+function updateHeader() {
+  document.getElementById('hd-comp-atual').textContent = fmtMes(DB.config.competenciaAtual) || '—';
+  document.getElementById('hd-comp-prox').textContent = fmtMes(DB.config.competenciaProxima) || '—';
+  const ativos = DB.cadastro.filter(c => c.situacao === 'ATIVO');
+  document.getElementById('hd-total-colab').textContent = ativos.length;
+  document.getElementById('hd-dias-va').textContent = DB.config.duAtual || 0;
+  const comp = DB.config.competenciaAtual;
+  const ausencias = comp ? DB.eventos.filter(e => e.data && e.data.startsWith(comp) && e.ausencia === 'SIM').length : 0;
+  document.getElementById('hd-ausencias').textContent = ausencias;
+  // badge de eventos
+  document.getElementById('nb-ev').textContent = comp ? DB.eventos.filter(e => e.data && e.data.startsWith(comp)).length : 0;
+  atualizarCardUltimaEdicao();
+}
+
+// ═══════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════
+function nav(id, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  el.classList.add('active');
+  updateHeader();
+  if (id === 'dashboard') renderDash();
+  if (id === 'colaboradores') renderColab();
+  if (id === 'eventos') renderEv();
+  if (id === 'calendario') renderCal();
+  if (id === 'config') renderConfig();
+  if (id === 'admin') renderAdminPage();;
+  if (id === 'previa') renderPrevia();
+}
+
+// ═══════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════
+const TIPO_COLORS = {
+  'ATESTADO':'cyan','DECLARAÇÃO':'blue','FALTA INJUSTIFICADA':'rose',
+  'SUSPENSÃO':'violet','FÉRIAS':'amber','AFASTAMENTO':'rose',
+  'LICENÇA PATERNIDADE':'teal','LICENÇA MATERNIDADE':'teal',
+  'LICENÇA CASAMENTO':'teal','ADMISSÃO':'teal','DEMISSÃO':'rose',
+  'DOMINGO TRABALHADO':'cyan','FERIADO TRABALHADO':'cyan',
+};
+function renderDash() {
+  const comp = DB.config.competenciaAtual;
+  document.getElementById('dash-sub').textContent = comp ? 'Competência: ' + fmtMesFull(comp) : 'Configure a competência em Configurações';
+  document.getElementById('dash-mes-label').textContent = comp ? fmtMes(comp) : '';
+
+  // ── Eventos do mês (inclui períodos que cruzam o mês) ──────────────────
+  const [cy, cm] = comp ? comp.split('-').map(Number) : [0,0];
+  const inicioMes = comp + '-01';
+  const ultimoDia = new Date(cy, cm, 0).getDate();
+  const fimMes = comp + '-' + String(ultimoDia).padStart(2,'0');
+
+  const evMes = comp ? DB.eventos.filter(e => {
+    if (!e.data) return false;
+    const fim = e.dataFim || e.data;
+    return e.data <= fimMes && fim >= inicioMes;
+  }) : [];
+
+  // ── Função auxiliar: dias de ausência de um evento ─────────────────────
+  function diasAusencia(ev) {
+    if (ev.ausencia !== 'SIM') return 0;
+    if (!ev.dataFim || ev.dataFim === ev.data) {
+      // Dia único — verificar se é dia útil
+      const dt = new Date(ev.data + 'T12:00:00');
+      return isDiaUtil(dt, ev.data) ? 1 : 0;
+    }
+    // Período — contar apenas dias úteis
+    let count = 0;
+    const dt = new Date(ev.data + 'T12:00:00');
+    const fim = new Date(ev.dataFim + 'T12:00:00');
+    while (dt <= fim) {
+      const key = dt.toISOString().slice(0,10);
+      if (isDiaUtil(dt, key)) count++;
+      dt.setDate(dt.getDate()+1);
+    }
+    return count || 1;
+  }
+
+  // ── Totais corrigidos (contam DIAS, não ocorrências) ──────────────────
+  const ativos     = DB.cadastro.filter(c => c.situacao === 'ATIVO');
+  const admissoes  = DB.cadastro.filter(c => c.admissao && comp && c.admissao.startsWith(comp.slice(0,7)));
+  const demissoes  = DB.cadastro.filter(c => c.situacao === 'DEMITIDO');
+  const ausencias  = evMes.filter(e => isAusenciaReal(e)); // AFASTADO INSS excluído
+
+  // Total de DIAS ausentes (não quantidade de eventos)
+  const totalDiasAus    = ausencias.reduce((s, e) => s + diasAusencia(e), 0);
+  const totalAtestados  = evMes.filter(e => e.tipo === 'ATESTADO').reduce((s,e) => s + diasAusencia(e), 0);
+  const totalFaltas     = evMes.filter(e => e.tipo === 'FALTA INJUSTIFICADA').reduce((s,e) => s + diasAusencia(e), 0);
+  const totalSuspensoes = evMes.filter(e => e.tipo === 'SUSPENSÃO').reduce((s,e) => s + diasAusencia(e), 0);
+  const TIPOS_LICENCA   = ['LICENÇA PATERNIDADE','LICENÇA MATERNIDADE','LICENÇA CASAMENTO','LICENÇA NOJO'];
+  const totalLicencas   = evMes.filter(e => TIPOS_LICENCA.includes(e.tipo)).reduce((s,e) => s + diasAusencia(e), 0);
+  const evLicencas      = evMes.filter(e => TIPOS_LICENCA.includes(e.tipo));
+
+  // ── KPIs ──────────────────────────────────────────────────────────────
+  // ── Montar listas para modal dos cards ────────────────────────────────
+  window._dashData = {
+    ausencias: ausencias.map(e => ({nome:e.nome, tipo:e.tipo, data:e.data, dataFim:e.dataFim, dias:diasAusencia(e)})),
+    faltas: evMes.filter(e=>e.tipo==='FALTA INJUSTIFICADA').map(e=>({nome:e.nome,tipo:e.tipo,data:e.data,dataFim:e.dataFim,dias:diasAusencia(e)})),
+    atestados: evMes.filter(e=>e.tipo==='ATESTADO').map(e=>({nome:e.nome,tipo:e.tipo,data:e.data,dataFim:e.dataFim,dias:diasAusencia(e)})),
+    suspensoes: evMes.filter(e=>e.tipo==='SUSPENSÃO').map(e=>({nome:e.nome,tipo:e.tipo,data:e.data,dataFim:e.dataFim,dias:diasAusencia(e)})),
+    licencas: evLicencas.map(e=>({nome:e.nome,tipo:e.tipo,data:e.data,dataFim:e.dataFim,dias:diasAusencia(e)})),
+    admissoes: admissoes.map(c=>({nome:c.nome,data:c.admissao,tipo:'ADMISSÃO',dias:0})),
+    demissoes: demissoes.map(c=>({nome:c.nome,data:c.admissao,tipo:'DEMISSÃO',dias:0})),
+    ativos: ativos.map(c=>({nome:c.nome,tipo:'ATIVO',data:'',dias:0}))
+  };
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="sc blue sc-click" onclick="abrirModalCard('ativos','Colaboradores Ativos')"><div class="sc-l">Colaboradores Ativos</div><div class="sc-v blue">${ativos.length}</div><div class="sc-s">Total da equipe <span class="sc-hint">🔍</span></div></div>
+    <div class="sc teal sc-click" onclick="abrirModalCard('admissoes','Admissões no Mês')"><div class="sc-l">Admissões no Mês</div><div class="sc-v teal">${admissoes.length}</div><div class="sc-s">${fmtMes(comp)} <span class="sc-hint">🔍</span></div></div>
+    <div class="sc rose sc-click" onclick="abrirModalCard('demissoes','Demissões')"><div class="sc-l">Demissões</div><div class="sc-v rose">${demissoes.length}</div><div class="sc-s">Histórico total <span class="sc-hint">🔍</span></div></div>
+    <div class="sc amber sc-click" onclick="abrirModalCard('ausencias','Total Dias Ausentes')"><div class="sc-l">Total Dias Ausentes</div><div class="sc-v amber">${totalDiasAus}</div><div class="sc-s">Descontam VA <span class="sc-hint">🔍</span></div></div>
+    <div class="sc violet sc-click" onclick="abrirModalCard('faltas','Faltas Injustificadas')"><div class="sc-l">Faltas Injust.</div><div class="sc-v violet">${totalFaltas}</div><div class="sc-s">Sem justificativa <span class="sc-hint">🔍</span></div></div>
+    <div class="sc cyan sc-click" onclick="abrirModalCard('atestados','Atestados')"><div class="sc-l">Atestados</div><div class="sc-v cyan">${totalAtestados}</div><div class="sc-s">Com justificativa <span class="sc-hint">🔍</span></div></div>
+    <div class="sc orange sc-click" onclick="abrirModalCard('suspensoes','Suspensões')"><div class="sc-l">Suspensões</div><div class="sc-v orange">${totalSuspensoes}</div><div class="sc-s">Dias suspenso <span class="sc-hint">🔍</span></div></div>
+    <div class="sc green sc-click" onclick="abrirModalCard('licencas','Licenças')"><div class="sc-l">Licenças</div><div class="sc-v green">${totalLicencas}</div><div class="sc-s">Paternidade, Maternidade, Casamento, Nojo <span class="sc-hint">🔍</span></div></div>
+  `;
+
+  // ── Gráfico por TIPO (contando DIAS) ─────────────────────────────────
+  const tipoCount = {};
+  evMes.forEach(e => { tipoCount[e.tipo] = (tipoCount[e.tipo]||0) + diasAusencia(e); });
+  const tipoSorted = Object.entries(tipoCount).sort((a,b) => b[1]-a[1]).slice(0,8);
+  const maxT = tipoSorted.length ? tipoSorted[0][1] : 1;
+  document.getElementById('dash-chart-tipo').innerHTML = tipoSorted.length
+    ? tipoSorted.map(([t,v]) => `<div class="br-row"><span class="br-lbl">${t}</span><div class="br-track"><div class="br-fill" style="width:${Math.round(v/maxT*100)}%"></div></div><span class="br-val">${v}</span></div>`).join('')
+    : '<div class="empty"><div class="ei">📭</div><div>Sem eventos no mês</div></div>';
+
+  // ── Gráfico por COLABORADOR (contando DIAS de ausência) ───────────────
+  const colabDias = {};
+  ausencias.forEach(e => {
+    colabDias[e.nome] = (colabDias[e.nome]||0) + diasAusencia(e);
+  });
+  const colabSorted = Object.entries(colabDias).sort((a,b) => b[1]-a[1]).slice(0,10);
+  const maxC = colabSorted.length ? colabSorted[0][1] : 1;
+  document.getElementById('dash-chart-colab').innerHTML = colabSorted.length
+    ? colabSorted.map(([n,v]) => `<div class="br-row"><span class="br-lbl" title="${n}">${n.split(' ')[0]} ${n.split(' ')[1]||''}</span><div class="br-track"><div class="br-fill" style="width:${Math.round(v/maxC*100)}%;background:linear-gradient(90deg,var(--rose),var(--amber))"></div></div><span class="br-val">${v}</span></div>`).join('')
+    : '<div class="empty"><div>Sem ausências no mês</div></div>';
+
+  // ── Gráfico por BASE/CIDADE (contando DIAS) ───────────────────────────
+  const baseDias = {};
+  ausencias.forEach(e => {
+    const c = DB.cadastro.find(x => x.nome === e.nome);
+    const b = c ? (c.base || c.cidade || 'Sem base') : 'Sem base';
+    baseDias[b] = (baseDias[b]||0) + diasAusencia(e);
+  });
+  const baseSorted = Object.entries(baseDias).sort((a,b) => b[1]-a[1]);
+  const maxB = baseSorted.length ? baseSorted[0][1] : 1;
+  document.getElementById('dash-chart-base').innerHTML = baseSorted.length
+    ? baseSorted.map(([b,v]) => `<div class="br-row"><span class="br-lbl">${b}</span><div class="br-track"><div class="br-fill" style="width:${Math.round(v/maxB*100)}%;background:linear-gradient(90deg,var(--teal),var(--cyan))"></div></div><span class="br-val">${v}</span></div>`).join('')
+    : '<div class="empty"><div>Sem ausências</div></div>';
+
+  // ── NOVO: Painel Ausências por PESSOA (todos, com nome completo) ───────
+  if (document.getElementById('dash-chart-pessoa')) {
+    const pessoaSorted = Object.entries(colabDias).sort((a,b) => b[1]-a[1]);
+    const maxP = pessoaSorted.length ? pessoaSorted[0][1] : 1;
+    document.getElementById('dash-chart-pessoa').innerHTML = pessoaSorted.length
+      ? `<div style="margin-bottom:8px;font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">${pessoaSorted.length} colaborador${pessoaSorted.length>1?'es':''} com ausência — ${pessoaSorted.reduce((s,[,v])=>s+v,0)} dias no total</div>` +
+        pessoaSorted.map(([n,v]) => `<div class="br-row" style="margin-bottom:4px;"><span class="br-lbl" style="min-width:160px;max-width:160px" title="${n}">${n.split(' ').slice(0,2).join(' ')}</span><div class="br-track"><div class="br-fill" style="width:${Math.round(v/maxP*100)}%;background:linear-gradient(90deg,var(--rose),var(--violet))"></div></div><span class="br-val" style="color:var(--rose);min-width:28px">${v}</span></div>`).join('')
+      : '<div class="empty"><div>Nenhuma ausência registrada</div></div>';
+  }
+
+  // ── NOVO: Ausências por DATA — colunas 3D ────────────────────────────
+  if (document.getElementById('dash-chart-data')) {
+    const dataDias = {};
+    ausencias.forEach(e => {
+      const ini = new Date(e.data + 'T12:00:00');
+      const fim = new Date((e.dataFim || e.data) + 'T12:00:00');
+      let cur = new Date(ini);
+      while (cur <= fim) {
+        const key = cur.toISOString().slice(0,10);
+        if (key >= inicioMes && key <= fimMes) {
+          dataDias[key] = (dataDias[key]||0) + 1;
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
+    const dataSorted = Object.entries(dataDias).sort((a,b) => a[0].localeCompare(b[0]));
+    const maxD = dataSorted.length ? Math.max(...dataSorted.map(([,v])=>v)) : 1;
+    const alturaMax = 130; // px
+
+    document.getElementById('dash-chart-data').innerHTML = dataSorted.length
+      ? `<div style="padding:8px 0 4px;font-size:10px;color:var(--text2);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Qtd. de ausências por dia</div>
+         <div class="chart3d-wrap">` +
+        dataSorted.map(([dt, v]) => {
+          const [y,m,d] = dt.split('-');
+          const h = Math.max(16, Math.round((v / maxD) * alturaMax));
+          return `
+            <div class="col3d">
+              <div class="col3d-bar-wrap" style="height:${alturaMax}px;position:relative;">
+                <div class="col3d-front" style="height:${h}px;display:flex;align-items:center;justify-content:center;cursor:pointer;" title="${d}/${m}: ${v} ausência${v>1?'s':''} — clique para ver" onclick="verAusentesPorData('${dt}','${d}/${m}')">
+                  <span style="font-size:11px;font-weight:800;color:#fff;font-family:var(--mono);text-shadow:0 1px 4px rgba(0,0,0,.8);position:relative;z-index:2;">${v}</span>
+                </div>
+              </div>
+              <div class="col3d-lbl">${d}/${m}</div>
+            </div>`;
+        }).join('') + `</div>
+        <div style="margin-top:8px;font-size:10px;color:var(--text3);border-top:1px solid var(--bdr);padding-top:8px;">
+          Total: <strong style="color:var(--cyan)">${dataSorted.reduce((s,[,v])=>s+v,0)} ausências</strong> em 
+          <strong style="color:var(--cyan)">${dataSorted.length} dias</strong> no mês
+        </div>`
+      : '<div class="empty"><div>Sem ausências registradas</div></div>';
+  }
+
+  // ── Recentes ──────────────────────────────────────────────────────────
+  const rec = [...evMes].sort((a,b) => b.data.localeCompare(a.data)).slice(0,8);
+  const TIPO_BDG = {'FALTA INJUSTIFICADA':'bd-rose','ATESTADO':'bd-cyan','FÉRIAS':'bd-amber','SUSPENSÃO':'bd-violet','AFASTAMENTO':'bd-rose','ADMISSÃO':'bd-teal','DEMISSÃO':'bd-rose'};
+  document.getElementById('dash-recentes').innerHTML = rec.length
+    ? rec.map(e => {
+        const c = DB.cadastro.find(x => x.nome === e.nome);
+        const va = c ? calcVA(c) : '—';
+        const dias = diasAusencia(e);
+        const bdg = TIPO_BDG[e.tipo] || 'bd-gray';
+        const periodo = e.dataFim && e.dataFim !== e.data ? fmtDate(e.data)+' a '+fmtDate(e.dataFim) : fmtDate(e.data);
+        return `<tr><td style="font-weight:600">${e.nome.split(' ')[0]} ${e.nome.split(' ')[1]||''}</td><td><span class="bdg ${bdg}">${e.tipo}</span></td><td class="tn">${periodo}${dias>1?' ('+dias+'d)':''}</td><td><span class="va-big ${va==0?'va-zero':''}" style="font-size:13px">${va}</span></td></tr>`;
+      }).join('')
+    : '<tr><td colspan="4" class="empty">Sem eventos no mês</td></tr>';
+}
+
+// ═══════════════════════════════════════════════════
+// TIPOS QUE NÃO CONTAM COMO AUSÊNCIA (ex: INSS - vaga reposta)
+// ═══════════════════════════════════════════════════
+const TIPOS_NAO_AUSENCIA = ['AFASTADO INSS', 'LICENÇA MATERNIDADE'];
+
+function isAusenciaReal(ev) {
+  // Retorna true SOMENTE se o evento conta como ausência de fato
+  if (ev.ausencia !== 'SIM') return false;
+  if (TIPOS_NAO_AUSENCIA.includes(ev.tipo)) return false;
+  return true;
+}
+
+// ═══════════════════════════════════════════════════
+// COLABORADORES
+// ═══════════════════════════════════════════════════
+function renderColab(list) {
+  if (!list) list = DB.cadastro;
+  const tbody = document.getElementById('colab-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="ei">👥</div><div>Nenhum colaborador cadastrado</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map((c, i) => {
+    const regra = getRegraVA(c.admissao);
+    const va = calcVA(c);
+    const realIdx = DB.cadastro.indexOf(c);
+    return `<tr>
+      <td class="tn">${c.matr}</td>
+      <td style="font-weight:600;max-width:200px">${c.nome}</td>
+      <td style="color:var(--text2);font-size:11px">${c.funcao||'—'}</td>
+      <td>${c.base||c.cidade||'—'}</td>
+      <td class="tn" style="font-size:11px">${fmtDate(c.admissao)}</td>
+      <td><span class="bdg ${regra==='PROXIMO'?'bd-amber':'bd-cyan'}">${regra}</span></td>
+      <td><span class="bdg ${c.situacao==='ATIVO'?'bd-teal':c.situacao==='DEMITIDO'?'bd-rose':'bd-amber'}">${c.situacao}</span></td>
+      <td><span class="va-big ${va==0?'va-zero':''}" style="font-size:14px">${va}</span></td>
+      <td style="display:flex;gap:3px">
+        <button class="btn btn-ghost btn-sm" onclick="editColab(${realIdx})">✏</button>
+        ${isAdmin() ? `<button class="btn btn-ghost btn-sm" style="color:var(--rose)" onclick="delColab(${realIdx})">✕</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+function filterColab() {
+  const q = document.getElementById('colab-search').value.toLowerCase();
+  const base = document.getElementById('colab-filter-base').value;
+  const sit = document.getElementById('colab-filter-sit').value;
+  const rv = document.getElementById('colab-filter-rv').value;
+  let list = DB.cadastro.filter(c => {
+    if (q && !c.nome.toLowerCase().includes(q) && !String(c.matr).includes(q)) return false;
+    if (base && c.base !== base && c.cidade !== base) return false;
+    if (sit && c.situacao !== sit) return false;
+    if (rv && getRegraVA(c.admissao) !== rv) return false;
+    return true;
+  });
+  renderColab(list);
+}
+function openColabModal(idx) {
+  editColabIdx = idx !== undefined ? idx : -1;
+  const title = editColabIdx >= 0 ? 'Editar Colaborador' : 'Novo Colaborador';
+  document.getElementById('mo-colab-title').textContent = title;
+  if (editColabIdx >= 0) {
+    const c = DB.cadastro[editColabIdx];
+    document.getElementById('mc-matr').value = c.matr;
+    document.getElementById('mc-nome').value = c.nome;
+    document.getElementById('mc-func').value = c.funcao || 'LEIT/ ENT.';
+    document.getElementById('mc-base').value = c.base || c.cidade || 'ARAÇATUBA';
+    document.getElementById('mc-adm').value = c.admissao || '';
+    document.getElementById('mc-sit').value = c.situacao || 'ATIVO';
+    document.getElementById('mc-cc').value = c.cc || '74';
+  } else {
+    ['mc-matr','mc-nome','mc-adm'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mc-func').value = 'LEIT/ ENT.';
+    document.getElementById('mc-base').value = 'SAO JOSE RIO PRETO';
+    document.getElementById('mc-sit').value = 'ATIVO';
+    document.getElementById('mc-cc').value = '74';
+  }
+  openModal('mo-colab');
+}
+function editColab(i) { openColabModal(i); }
+function saveColab() {
+  // Validar campo obrigatório "Editado por"
+  const editadoPor = document.getElementById('mc-editado-por')?.value.trim();
+  if (!editadoPor) {
+    toast('Campo "Editado por" é obrigatório!', 'err');
+    document.getElementById('mc-editado-por').focus();
+    return;
+  }
+
+  const editadoPorVal = document.getElementById('mc-editado-por')?.value.trim() || '';
+  const obj = {
+    matr: document.getElementById('mc-matr').value.trim(),
+    nome: document.getElementById('mc-nome').value.trim().toUpperCase(),
+    funcao: document.getElementById('mc-func').value,
+    base: document.getElementById('mc-base').value,
+    admissao: document.getElementById('mc-adm').value,
+    situacao: document.getElementById('mc-sit').value,
+    cc: document.getElementById('mc-cc').value || '74'
+  };
+  if (!obj.matr || !obj.nome) { toast('Preencha matrícula e nome', 'err'); return; }
+  if (editColabIdx >= 0) DB.cadastro[editColabIdx] = obj;
+  else DB.cadastro.push(obj);
+  DB.cadastro.sort((a,b) => a.nome.localeCompare(b.nome));
+  save(); closeModal('mo-colab'); renderColab(); updateHeader();
+  registrarUltimaEdicao();
+  const _uAud = sessionStorage.getItem('fpd_user');
+  const _acAud = editColabIdx >= 0 ? 'COLABORADOR EDITADO' : 'COLABORADOR CRIADO';
+  registrarAuditoria(_uAud, _acAud, obj.nome + ' (' + obj.matr + ')');
+  toast(editColabIdx >= 0 ? 'Colaborador atualizado' : 'Colaborador cadastrado', 'ok');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL DE CONFIRMAÇÃO DE EXCLUSÃO
+// ═══════════════════════════════════════════════════════════════
+function confirmarExclusao(nome, tipo, onConfirm) {
+  // Guardar callback globalmente para evitar perda de contexto
+  window._confirmCallback = onConfirm;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-confirm-overlay';
+  overlay.id = 'modal-confirm';
+  overlay.innerHTML = `
+    <div class="modal-confirm-box">
+      <div class="modal-confirm-icon">🗑️</div>
+      <div class="modal-confirm-title">Confirmar exclusão</div>
+      <div class="modal-confirm-sub">Você está prestes a remover o ${tipo}:<br><strong style="color:var(--rose)">${nome}</strong><br><span style="font-size:11px;color:var(--text3)">Esta ação não pode ser desfeita.</span></div>
+      <div class="modal-confirm-btns">
+        <button class="btn-confirm-cancel" onclick="document.getElementById('modal-confirm').remove()">Cancelar</button>
+        <button class="btn-confirm-ok" onclick="document.getElementById('modal-confirm').remove(); window._confirmCallback && window._confirmCallback();">Sim, excluir</button>
+      </div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+
+function delColab(i) {
+  if (!isAdmin()) {
+    toast('Sem permissão para excluir colaboradores!', 'err');
+    return;
+  }
+  const nome = DB.cadastro[i].nome;
+  confirmarExclusao(nome, 'colaborador', () => {
+    DB.cadastro.splice(i, 1);
+    save();
+    renderColab();
+    updateHeader();
+    registrarAuditoria(sessionStorage.getItem('fpd_user'), 'COLABORADOR DELETADO', nome);
+    toast('Colaborador removido', 'ok');
+  });
+}
+function exportCadExcel() {
+  const wb = XLSX.utils.book_new();
+  const rows = [['MATR','NOME','ADMISSÃO','FUNÇÃO','CIDADE','SITUAÇÃO','REGRA_VA']];
+  DB.cadastro.forEach(c => rows.push([c.matr, c.nome, c.admissao ? new Date(c.admissao+'T12:00:00') : '', c.funcao||'', c.base||c.cidade||'', c.situacao||'', getRegraVA(c.admissao)]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'CADASTRO');
+  XLSX.writeFile(wb, 'CADASTRO_' + (DB.config.competenciaAtual||'SEM_COMP').replace('-','_') + '.xlsx');
+}
+
+// ═══════════════════════════════════════════════════
+// EVENTOS
+// ═══════════════════════════════════════════════════
+const EV_AUSENCIA_DEFAULT = {
+  'ATESTADO':'SIM','DECLARAÇÃO':'SIM','FALTA INJUSTIFICADA':'SIM','SUSPENSÃO':'SIM',
+  'FÉRIAS':'SIM','AFASTAMENTO':'SIM','LICENÇA PATERNIDADE':'SIM','LICENÇA MATERNIDADE':'SIM',
+  'LICENÇA CASAMENTO':'SIM','ADMISSÃO':'NÃO','DEMISSÃO':'NÃO','RETORNO AO TRABALHO':'NÃO',
+  'DOMINGO TRABALHADO':'NÃO','FERIADO TRABALHADO':'NÃO',
+};
+const EV_BDG = {
+  'FALTA INJUSTIFICADA':'bd-rose','ATESTADO':'bd-cyan','DECLARAÇÃO':'bd-blue',
+  'FÉRIAS':'bd-amber','SUSPENSÃO':'bd-violet','AFASTAMENTO':'bd-rose',
+  'ADMISSÃO':'bd-teal','DEMISSÃO':'bd-rose','RETORNO AO TRABALHO':'bd-teal',
+  'LICENÇA PATERNIDADE':'bd-teal','LICENÇA MATERNIDADE':'bd-teal','LICENÇA CASAMENTO':'bd-teal',
+  'DOMINGO TRABALHADO':'bd-cyan','FERIADO TRABALHADO':'bd-cyan',
+};
+// Tipos que mostram campo "justificada"
+const EV_COM_JUSTIFICATIVA = ['ATESTADO','LICENÇA PATERNIDADE','LICENÇA MATERNIDADE','LICENÇA CASAMENTO'];
+function renderEv(list) {
+  if (!list) {
+    const comp = DB.config.competenciaAtual;
+    list = comp ? DB.eventos.filter(e => e.data && e.data.startsWith(comp)) : DB.eventos;
+  }
+  const sorted = [...list].sort((a,b) => b.data.localeCompare(a.data));
+  const tbody = document.getElementById('ev-tbody');
+  if (!sorted.length) {
+    tbody.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="ei">📋</div><div>Nenhum evento registrado</div></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = sorted.map(ev => {
+    const ri = DB.eventos.indexOf(ev);
+    const bdg = EV_BDG[ev.tipo] || 'bd-gray';
+    const periodo = ev.dataFim && ev.dataFim !== ev.data
+      ? `${fmtDate(ev.data)} → ${fmtDate(ev.dataFim)}`
+      : fmtDate(ev.data);
+    const dias = ev.diasCount > 1 ? `<span class="bdg bd-amber" style="font-size:9px">${ev.diasCount}d</span>` : '';
+    const just = EV_COM_JUSTIFICATIVA.includes(ev.tipo)
+      ? `<span class="bdg ${ev.justificada==='SIM'?'bd-teal':'bd-rose'}" style="font-size:9px">${ev.justificada==='SIM'?'JUST.':'S/ JUST.'}</span>` : '';
+    return `<tr>
+      <td class="tn">${ev.matr||'—'}</td>
+      <td style="font-weight:600;max-width:160px">${ev.nome}</td>
+      <td class="tn" style="white-space:nowrap">${periodo} ${dias}</td>
+      <td><span class="bdg ${bdg}">${ev.tipo}</span></td>
+      <td>${just}<span class="bdg ${ev.ausencia==='SIM'?'bd-rose':'bd-teal'} ml4">${ev.ausencia==='SIM'?'↓VA':'-'}</span></td>
+      <td style="color:var(--text2);font-size:11px;max-width:160px">${ev.obs||'—'}</td>
+      <td class="tn" style="font-size:10px">${ev.data?ev.data.slice(0,7):''}</td>
+      <td style="display:flex;gap:3px">
+        <button class="btn btn-ghost btn-sm" onclick="editEv(${ri})" title="Editar">✏</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--rose)" onclick="delEv(${ri})" title="Excluir">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function filterEv() {
+  const q = document.getElementById('ev-search').value.toLowerCase();
+  const tipo = document.getElementById('ev-filter-tipo').value;
+  const aus = document.getElementById('ev-filter-aus').value;
+  const mes = document.getElementById('ev-filter-mes').value;
+  const list = DB.eventos.filter(e => {
+    if (q && !e.nome.toLowerCase().includes(q) && !String(e.matr).includes(q)) return false;
+    if (tipo && e.tipo !== tipo) return false;
+    if (aus && e.ausencia !== aus) return false;
+    if (mes && !(e.data && e.data.startsWith(mes))) return false;
+    return true;
+  });
+  renderEv(list);
+}
+function openEvModal() {
+  document.getElementById('mo-ev-title').textContent = 'Lançar Evento';
+  document.getElementById('ev-edit-idx').value = '-1';
+  document.getElementById('ev-nome-input').value = '';
+  document.getElementById('ev-nome-val').value = '';
+  document.getElementById('ev-matr-val').value = '';
+  document.getElementById('ev-data-ini').value = '';
+  document.getElementById('ev-data-fim').value = '';
+  document.getElementById('ev-dias-count').value = '';
+  document.getElementById('ev-tipo').value = 'ATESTADO';
+  document.getElementById('ev-ausencia').value = 'SIM';
+  document.getElementById('ev-justificada').value = 'SIM';
+  document.getElementById('ev-obs').value = '';
+  document.getElementById('ev-ac-list').classList.remove('open');
+  onEvTipo();
+  openModal('mo-ev');
+}
+function editEv(idx) {
+  const ev = DB.eventos[idx];
+  if (!ev) return;
+  document.getElementById('mo-ev-title').textContent = 'Editar Evento';
+  document.getElementById('ev-edit-idx').value = idx;
+  document.getElementById('ev-nome-input').value = ev.nome;
+  document.getElementById('ev-nome-val').value = ev.nome;
+  document.getElementById('ev-matr-val').value = ev.matr||'';
+  document.getElementById('ev-data-ini').value = ev.data||'';
+  document.getElementById('ev-data-fim').value = ev.dataFim||'';
+  document.getElementById('ev-tipo').value = ev.tipo||'ATESTADO';
+  document.getElementById('ev-ausencia').value = ev.ausencia||'SIM';
+  document.getElementById('ev-justificada').value = ev.justificada||'SIM';
+  document.getElementById('ev-obs').value = ev.obs||'';
+  onEvTipo();
+  onDataChange();
+  openModal('mo-ev');
+}
+function onEvTipo() {
+  const tipo = document.getElementById('ev-tipo').value;
+  const def = EV_AUSENCIA_DEFAULT[tipo] || 'SIM';
+  document.getElementById('ev-ausencia').value = def;
+  // Mostrar/ocultar campo justificativa
+  const wrap = document.getElementById('ev-just-wrap');
+  if (EV_COM_JUSTIFICATIVA.includes(tipo)) {
+    wrap.style.display = '';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+function onDataChange() {
+  const ini = document.getElementById('ev-data-ini').value;
+  const fim = document.getElementById('ev-data-fim').value;
+  if (!ini) { document.getElementById('ev-dias-count').value = ''; return; }
+  if (!fim || fim === ini) {
+    document.getElementById('ev-dias-count').value = '1 dia';
+    return;
+  }
+  // Contar dias corridos no período
+  const d1 = new Date(ini + 'T12:00:00');
+  const d2 = new Date(fim + 'T12:00:00');
+  const diff = Math.round((d2 - d1) / 86400000) + 1;
+  document.getElementById('ev-dias-count').value = diff + ' dias corridos';
+}
+function acEv(val) {
+  const list = document.getElementById('ev-ac-list');
+  if (!val || val.length < 2) { list.classList.remove('open'); return; }
+  const q = val.toLowerCase();
+  const matches = DB.cadastro.filter(c =>
+    c.nome.toLowerCase().includes(q) || String(c.matr).includes(q)
+  ).slice(0, 8);
+  if (!matches.length) { list.classList.remove('open'); return; }
+  list.innerHTML = matches.map(c =>
+    `<div class="ac-item" onclick="selectColabEv('${c.nome.replace(/'/g,"\\'")}','${c.matr}')">
+      <span>${c.nome}</span><span class="ac-matr">${c.matr}</span>
+    </div>`
+  ).join('');
+  list.classList.add('open');
+}
+function selectColabEv(nome, matr) {
+  document.getElementById('ev-nome-input').value = nome;
+  document.getElementById('ev-nome-val').value = nome;
+  document.getElementById('ev-matr-val').value = matr;
+  document.getElementById('ev-ac-list').classList.remove('open');
+}
+function saveEv() {
+  if (isViewer()) { toast('Sem permissão para lançar eventos!', 'err'); return; }
+  const nome = document.getElementById('ev-nome-val').value || document.getElementById('ev-nome-input').value.trim().toUpperCase();
+  const matr = document.getElementById('ev-matr-val').value;
+  const dataIni = document.getElementById('ev-data-ini').value;
+  const dataFim = document.getElementById('ev-data-fim').value;
+  const tipo = document.getElementById('ev-tipo').value;
+  if (!nome || !dataIni) { toast('Preencha colaborador e data', 'err'); return; }
+
+  const obj = {
+    matr: matr || '', nome,
+    data: dataIni,
+    dataFim: dataFim || dataIni,
+    diasCount: (() => {
+      if (!dataFim || dataFim === dataIni) return 1;
+      return Math.round((new Date(dataFim+'T12:00:00') - new Date(dataIni+'T12:00:00')) / 86400000) + 1;
+    })(),
+    tipo,
+    ausencia: document.getElementById('ev-ausencia').value,
+    justificada: EV_COM_JUSTIFICATIVA.includes(tipo) ? document.getElementById('ev-justificada').value : null,
+    obs: document.getElementById('ev-obs').value.trim()
+  };
+
+  const editIdx = parseInt(document.getElementById('ev-edit-idx').value);
+  if (editIdx >= 0) {
+    DB.eventos[editIdx] = obj;
+    registrarUltimaEdicao();
+  registrarAuditoria(sessionStorage.getItem('fpd_user'), 'EVENTO EDITADO', (document.getElementById('ev-nome-val')?.value || '') + ' - ' + document.getElementById('ev-tipo')?.value);
+  toast('Evento atualizado', 'ok');
+  } else {
+    DB.eventos.push(obj);
+    registrarUltimaEdicao();
+  registrarAuditoria(sessionStorage.getItem('fpd_user'), 'EVENTO CRIADO', (document.getElementById('ev-nome-val')?.value || '') + ' - ' + document.getElementById('ev-tipo')?.value);
+  toast('Evento registrado', 'ok');
+  }
+  save(); closeModal('mo-ev'); renderEv(); updateHeader();
+}
+function delEv(i) {
+  const ev = DB.eventos[i];
+  const nome = ev ? ev.nome + ' — ' + ev.tipo : 'evento';
+  confirmarExclusao(nome, 'evento', () => {
+    DB.eventos.splice(i, 1);
+    save();
+    renderEv();
+    updateHeader();
+    registrarAuditoria(sessionStorage.getItem('fpd_user'), 'EVENTO DELETADO', nome);
+    toast('Evento removido', 'ok');
+  });
+}
+function exportEvExcel() {
+  const wb = XLSX.utils.book_new();
+  const rows = [['MATR','NOME','DATA','EVENTO','AUSÊNCIA','OBSERVAÇÃO']];
+  DB.eventos.forEach(e => rows.push([e.matr||'', e.nome, e.data ? new Date(e.data+'T12:00:00') : '', e.tipo, e.ausencia, e.obs||'']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'EVENTOS');
+  XLSX.writeFile(wb, 'EVENTOS_' + (DB.config.competenciaAtual||'SEM').replace('-','_') + '.xlsx');
+}
+
+// ═══════════════════════════════════════════════════
+// CALENDÁRIO
+// ═══════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════
+// POPULAR CALENDÁRIO COM FERIADOS NACIONAIS
+// ═══════════════════════════════════════════════════════════════
+const FERIADOS_LISTA = {
+  '2026-01-01': 'Confraternização Universal',
+  '2026-02-16': 'Carnaval',
+  '2026-02-17': 'Carnaval',
+  '2026-04-03': 'Paixão de Cristo',
+  '2026-04-21': 'Tiradentes',
+  '2026-05-01': 'Dia do Trabalho',
+  '2026-06-04': 'Corpus Christi',
+  '2026-07-09': 'Revolução Constitucionalista (SP)',
+  '2026-09-07': 'Independência do Brasil',
+  '2026-10-12': 'Nossa Senhora Aparecida',
+  '2026-11-02': 'Finados',
+  '2026-11-15': 'Proclamação da República',
+  '2026-11-20': 'Dia da Consciência Negra',
+  '2026-12-25': 'Natal',
+  '2027-01-01': 'Confraternização Universal',
+  '2027-02-09': 'Carnaval',
+  '2027-03-26': 'Sexta-feira Santa',
+  '2027-04-21': 'Tiradentes',
+  '2027-05-01': 'Dia do Trabalho',
+  '2027-05-20': 'Corpus Christi',
+  '2027-09-07': 'Independência do Brasil',
+  '2027-10-12': 'Nossa Senhora Aparecida',
+  '2027-11-02': 'Finados',
+  '2027-11-15': 'Proclamação da República',
+  '2027-11-20': 'Consciência Negra',
+  '2027-12-25': 'Natal'
+};
+
+function popularFeriadosNoCalendario() {
+  let alterou = false;
+  Object.entries(FERIADOS_LISTA).forEach(([key, nome]) => {
+    // Só adiciona se ainda não estiver no calendário
+    if (!DB.calendario[key]) {
+      DB.calendario[key] = {
+        tipo: 'FERIADO',
+        contaVA: false,
+        obs: nome,
+        nacional: true
+      };
+      alterou = true;
+    }
+  });
+  if (alterou) save();
+}
+
+
+function renderCal() {
+  const comp = DB.config.competenciaAtual;
+  if (comp && (!calYear || !calMonth)) {
+    [calYear, calMonth] = comp.split('-').map(Number);
+  }
+  if (!calYear) { calYear = new Date().getFullYear(); calMonth = new Date().getMonth() + 1; }
+  document.getElementById('cal-title').textContent = MESES_FULL[calMonth] + ' ' + calYear;
+
+  const firstDay = new Date(calYear, calMonth - 1, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+  let html = '';
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-d cd-em"></div>';
+
+  let totalVA = 0, totalDOM = 0, totalFer = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(calYear, calMonth - 1, d);
+    const key = `${calYear}-${String(calMonth).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const wd = dt.getDay();
+    const isDom = wd === 0, isSab = wd === 6;
+    const cal = DB.calendario[key];
+
+    let tipo = isDom ? 'DOMINGO' : isSab ? 'SABADO' : 'NORMAL';
+    let contaVA = !isDom;
+    let cls = 'cal-d';
+    let dtxt = '';
+
+    if (cal) {
+      tipo = cal.tipo;
+      contaVA = cal.contaVA;
+    }
+
+    if (tipo === 'DOMINGO' && !contaVA) { cls += ' cd-dom'; dtxt = 'dom'; totalDOM++; }
+    else if (tipo === 'DOMINGO' && contaVA) { cls += ' cd-dtrb'; dtxt = 'trab'; }
+    else if (tipo === 'FERIADO' && contaVA) { cls += ' cd-fer'; dtxt = 'fer↑'; totalFer++; }
+    else if (tipo === 'FERIADO' && !contaVA) { cls += ' cd-off'; dtxt = 'fer✕'; totalFer++; }
+    else if (isSab) { cls += ' cd-sab'; dtxt = 'sáb'; }
+    else dtxt = '✓';
+
+    if (contaVA) totalVA++;
+    html += `<div class="${cls}" onclick="toggleCalDay('${key}',${isDom},${isSab})">
+      <span class="dn">${d}</span>
+      <div class="cal-vbar ${contaVA?'':'off'}"></div>
+      <span class="dt" style="color:${contaVA?'var(--teal)':'var(--rose)'}">${dtxt}</span>
+    </div>`;
+  }
+  document.getElementById('cal-body').innerHTML = html;
+
+  document.getElementById('cal-resumo').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="sc teal" style="padding:12px"><div class="sc-l">Dias VA (Conta VA)</div><div class="sc-v teal" style="font-size:20px">${totalVA}</div></div>
+      <div class="sc rose" style="padding:12px"><div class="sc-l">Domingos</div><div class="sc-v rose" style="font-size:20px">${totalDOM}</div></div>
+      <div class="sc amber" style="padding:12px"><div class="sc-l">Feriados config.</div><div class="sc-v amber" style="font-size:20px">${totalFer}</div></div>
+      <div class="sc blue" style="padding:12px"><div class="sc-l">Total dias</div><div class="sc-v blue" style="font-size:20px">${daysInMonth}</div></div>
+    </div>`;
+}
+function toggleCalDay(key, isDom, isSab) {
+  const cal = DB.calendario[key];
+  if (isDom) {
+    if (!cal || !cal.contaVA) DB.calendario[key] = { tipo:'DOMINGO', contaVA:true, obs:'Domingo trabalhado' };
+    else delete DB.calendario[key];
+  } else {
+    if (!cal) DB.calendario[key] = { tipo:'FERIADO', contaVA:true, obs:'Feriado trabalhado' };
+    else if (cal.contaVA) DB.calendario[key] = { tipo:'FERIADO', contaVA:false, obs:'Feriado não trabalhado' };
+    else delete DB.calendario[key];
+  }
+  save(); renderCal();
+}
+function calPrev() { calMonth--; if (calMonth < 1) { calMonth = 12; calYear--; } renderCal(); }
+function calNext() { calMonth++; if (calMonth > 12) { calMonth = 1; calYear++; } renderCal(); }
+
+// ═══════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════
+function renderConfig() {
+  document.getElementById('cfg-atual').value = DB.config.competenciaAtual || '';
+  document.getElementById('cfg-prox').value = DB.config.competenciaProxima || '';
+  document.getElementById('cfg-du-atual').value = DB.config.duAtual || 25;
+  document.getElementById('cfg-du-prox').value = DB.config.duProximo || 25;
+  document.getElementById('cfg-corte').value = DB.config.dataCorte || '2015-06-01';
+  document.getElementById('cfg-base').value = DB.config.base || '';
+  document.getElementById('cfg-coord').value = DB.config.coordenador || '';
+}
+function saveConfig() {
+  DB.config.competenciaAtual = document.getElementById('cfg-atual').value;
+  DB.config.competenciaProxima = document.getElementById('cfg-prox').value;
+  DB.config.duAtual = parseInt(document.getElementById('cfg-du-atual').value) || 25;
+  DB.config.duProximo = parseInt(document.getElementById('cfg-du-prox').value) || 25;
+  DB.config.dataCorte = document.getElementById('cfg-corte').value;
+  DB.config.base = document.getElementById('cfg-base').value;
+  DB.config.coordenador = document.getElementById('cfg-coord').value;
+  save(); updateHeader(); toast('Configurações salvas', 'ok');
+}
+
+// ═══════════════════════════════════════════════════
+// PRÉVIA FINAL + EXPORT EXCEL (molde)
+// ═══════════════════════════════════════════════════
+// Calcula dias úteis de trabalho para demitido no mês (do dia 1 até data desligamento)
+function calcVADemitido(colab) {
+  const comp = DB.config.competenciaAtual;
+  if (!comp) return 0;
+  // Usar campo desligamento do cadastro OU buscar no evento de demissão
+  let dataDeslig = colab.desligamento || null;
+  if (!dataDeslig) {
+    const evDem = DB.eventos.find(e => String(e.matr) === String(colab.matr) && e.tipo === 'DEMISSÃO');
+    if (evDem && evDem.data) dataDeslig = evDem.data;
+  }
+  if (!dataDeslig) return getDuColaborador(colab.admissao); // fallback: mês cheio
+  // Contar dias úteis de 01/comp até dataDeslig
+  const diasTrabalhados = contarDiasUteisEntre(comp + '-01', dataDeslig, comp);
+  // Descontar ausências no período
+  const ausencias = getEvDoMes(colab.nome, comp).filter(e => e.ausencia === 'SIM');
+  let desc = 0;
+  ausencias.forEach(e => {
+    if (e.dataFim && e.dataFim > e.data) desc += contarDiasUteisEntre(e.data, e.dataFim, comp);
+    else desc += 1;
+  });
+  return Math.max(0, diasTrabalhados - desc);
+}
+
+function renderPrevia() {
+  const comp = DB.config.competenciaAtual;
+  document.getElementById('pv-base').textContent = DB.config.base || '—';
+  document.getElementById('pv-coord').textContent = 'Coordenador: ' + (DB.config.coordenador || '—');
+  document.getElementById('pv-ref').textContent = fmtMesFull(comp);
+  document.getElementById('pv-sub').textContent = comp ? 'Competência: ' + fmtMesFull(comp) : 'Configure a competência';
+
+  // Incluir ativos + demitidos na prévia
+  const ativos = DB.cadastro.filter(c => c.situacao === 'ATIVO');
+  const demitidosMes = DB.cadastro.filter(c => c.situacao === 'DEMITIDO');
+  const todosPrevia = [...ativos, ...demitidosMes];
+
+  let totalVA = 0, totalFJ = 0, totalFNJ = 0;
+  ativos.forEach(c => { totalVA += calcVA(c); totalFJ += countFJ(c); totalFNJ += countFNJ(c); });
+  demitidosMes.forEach(c => { totalVA += calcVADemitido(c); });
+
+  document.getElementById('pv-stats').innerHTML = `
+    <div class="sc blue"><div class="sc-l">Ativos</div><div class="sc-v blue">${ativos.length}</div></div>
+    <div class="sc rose"><div class="sc-l">Demitidos no Mês</div><div class="sc-v rose">${demitidosMes.length}</div></div>
+    <div class="sc cyan"><div class="sc-l">Dias VA (base)</div><div class="sc-v cyan">${DB.config.duAtual||0}</div></div>
+    <div class="sc amber"><div class="sc-l">Falt. Just.</div><div class="sc-v amber">${totalFJ}</div></div>
+    <div class="sc rose"><div class="sc-l">Falt. N.Just.</div><div class="sc-v rose">${totalFNJ}</div></div>
+  `;
+
+  const tbody = document.getElementById('pv-tbody');
+  if (!todosPrevia.length) {
+    tbody.innerHTML = '<tr><td colspan="14" class="empty">Nenhum colaborador</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = todosPrevia.map(c => {
+    const isDemitido = c.situacao === 'DEMITIDO';
+    const va = isDemitido ? calcVADemitido(c) : calcVA(c);
+    const fj = countFJ(c);
+    const fnj = countFNJ(c);
+    const peri = isPeri(c) ? '<span class="bdg bd-amber">SIM</span>' : '';
+    const obs = getObsAutomatic(c);
+    const regra = getRegraVA(c.admissao);
+    const compMes = DB.config.competenciaAtual;
+    const isAdmMes = c.admissao && compMes && c.admissao.startsWith(compMes);
+    const duBase = getDuColaborador(c.admissao);
+
+    // Buscar data desligamento para demitido
+    const evDem = isDemitido ? DB.eventos.find(e => (e.nome === c.nome || String(e.matr) === String(c.matr)) && e.tipo === 'DEMISSÃO') : null;
+    const obsDeslig = isDemitido && evDem ? ' / DEMISSÃO ' + fmtDate(evDem.data) : '';
+
+    const vaTag = (isAdmMes || isDemitido)
+      ? `<span class="va-big ${va===0?'va-zero':''}">${va}</span><span style="font-size:9px;color:var(--text2);display:block;font-family:var(--mono)">/${duBase} prop.</span>`
+      : `<span class="va-big ${va===0?'va-zero':''}">${va}</span>`;
+
+    const rowStyle = isDemitido ? ' style="border-left:3px solid var(--rose);opacity:.85"'
+      : isAdmMes ? ' style="border-left:3px solid var(--teal)"' : '';
+
+    return `<tr${rowStyle}>
+      <td class="tn">${c.matr}</td>
+      <td style="font-weight:600;max-width:180px;font-size:11px">${c.nome}${isDemitido ? ' <span class="bdg bd-rose" style="font-size:9px">DEMITIDO</span>' : ''}</td>
+      <td style="color:var(--text2);font-size:10px;white-space:nowrap">${c.funcao||'—'}</td>
+      <td style="font-size:11px">${c.base||c.cidade||'—'}</td>
+      <td style="text-align:center"><span class="bdg ${regra==='PROXIMO'?'bd-amber':'bd-blue'}" style="font-size:9px">${regra==='PROXIMO'?'ANT':'DEP'}</span></td>
+      <td class="tn">${c.cc||74}</td>
+      <td></td><td></td>
+      <td style="text-align:center">${peri}</td>
+      <td style="text-align:center">${fj ? `<span style="font-family:var(--mono);font-weight:700;color:var(--amber)">${fj}</span>` : ''}</td>
+      <td style="text-align:center">${fnj ? `<span style="font-family:var(--mono);font-weight:700;color:var(--rose)">${fnj}</span>` : ''}</td>
+      <td style="text-align:center">${vaTag}</td>
+      <td></td>
+      <td style="font-size:10px;color:var(--text2);max-width:260px;line-height:1.5">${obs}${obsDeslig}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportPreviaExcel() {
+  // Exporta no formato exato do molde PREVIA_INTELIGENTE.xlsx
+  const comp = DB.config.competenciaAtual;
+  const compProx = DB.config.competenciaProxima;
+  const ativos = DB.cadastro.filter(c => c.situacao === 'ATIVO');
+  const wb = XLSX.utils.book_new();
+
+  // ─── ABA PREVIA (molde preservado) ───────────────────────
+  const prvRows = [];
+  // L1: título
+  prvRows.push(['PRÉVIA DA FOLHA DE PAGAMENTO','','','','','','MÊS REFERÊNCIA','','','','','','',fmtMesFull(comp)]);
+  // L2: escritório
+  prvRows.push([
+    'ESCRITÓRIO/BASE: ' + (DB.config.base||''),
+    '', 'Coordenador: ' + (DB.config.coordenador||''),
+    '','','','CONTRATO: ','','','','','','','LEC/CPFL'
+  ]);
+  // L3: cabeçalho
+  prvRows.push(['Cod','NOME DO COLABORADOR','FUNÇÃO','LOCAL','ANT JUN/15','C/C','H/E %',null,'PERI','FTA 01-30',null,'V.A','CPP','OBSERVAÇÃO']);
+  // L4: sub-cabeçalho
+  prvRows.push([null,null,null,null,'DEP  JUN/15',null,50,100,null,'Just','Ñ Just',null,null,null]);
+
+  // L5+: dados dos colaboradores
+  ativos.forEach(c => {
+    const va = calcVA(c);
+    const fj = countFJ(c);
+    const fnj = countFNJ(c);
+    const peri = isPeri(c) ? 'SIM' : '';
+    const obs = getObsAutomatic(c);
+    const regra = getRegraVA(c.admissao);
+    const admDate = c.admissao ? new Date(c.admissao + 'T12:00:00') : null;
+
+    prvRows.push([
+      c.matr,
+      c.nome,
+      c.funcao || '',
+      c.base || c.cidade || '',
+      admDate,       // col E: data de admissão (ANT/DEP JUN/15)
+      parseInt(c.cc)||74, // col F: C/C
+      null,          // col G: HE 50%
+      null,          // col H: HE 100%
+      peri,          // col I: PERI
+      fj || null,    // col J: FTA Just
+      fnj || null,   // col K: FTA N.Just
+      va,            // col L: VA
+      null,          // col M: CPP
+      obs            // col N: OBS
+    ]);
+  });
+
+  const wsPrev = XLSX.utils.aoa_to_sheet(prvRows);
+  // Larguras de coluna (idênticas ao molde)
+  wsPrev['!cols'] = [
+    {wch:8},{wch:36},{wch:18},{wch:14},{wch:12},
+    {wch:6},{wch:7},{wch:7},{wch:6},{wch:6},
+    {wch:7},{wch:5},{wch:5},{wch:70}
+  ];
+  // Formatar datas na col E (col index 4, linhas de dados a partir de row 4)
+  const dateStyle = { numFmt: 'DD/MM/YYYY' };
+  for (let r = 4; r < prvRows.length; r++) {
+    const cellRef = XLSX.utils.encode_cell({r, c: 4});
+    if (wsPrev[cellRef] && wsPrev[cellRef].v instanceof Date) {
+      wsPrev[cellRef].t = 'd';
+    }
+  }
+  XLSX.utils.book_append_sheet(wb, wsPrev, 'PREVIA');
+
+  // ─── ABA CADASTRO ─────────────────────────────────────────
+  const cadRows = [['MATR','NOME','ADMISSÃO','FUNÇÃO','CIDADE','SITUAÇÃO','VALOR_VA_DIA','REGRA_VA','MES_VA']];
+  DB.cadastro.forEach(c => {
+    const regra = getRegraVA(c.admissao);
+    const mesVA = regra === 'PROXIMO' ? (compProx ? new Date(compProx+'-01T12:00:00') : null) : (comp ? new Date(comp+'-01T12:00:00') : null);
+    cadRows.push([
+      c.matr, c.nome,
+      c.admissao ? new Date(c.admissao+'T12:00:00') : '',
+      c.funcao||'', c.base||c.cidade||'', c.situacao||'',
+      null, regra, mesVA
+    ]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cadRows), 'CADASTRO');
+
+  // ─── ABA EVENTOS ──────────────────────────────────────────
+  const evRows = [['MATR','NOME','DATA','EVENTO','JUSTIFICADA','OBSERVAÇÃO','MES_EVENTO']];
+  DB.eventos.forEach(ev => {
+    const mesEv = ev.data ? new Date(ev.data.slice(0,8) + '01T12:00:00') : null;
+    evRows.push([
+      ev.matr||'', ev.nome,
+      ev.data ? new Date(ev.data+'T12:00:00') : '',
+      ev.tipo, ev.ausencia==='SIM'?'SIM':'NÃO', ev.obs||'', mesEv
+    ]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(evRows), 'EVENTOS');
+
+  // ─── ABA CALENDÁRIO ───────────────────────────────────────
+  const calRows = [['DATA','DIA DA SEMANA','TIPO','CONTA VA','OBS_CALENDARIO']];
+  if (comp) {
+    const [cy, cm] = comp.split('-').map(Number);
+    const dim = new Date(cy, cm, 0).getDate();
+    for (let d = 1; d <= dim; d++) {
+      const key = `${cy}-${String(cm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dt = new Date(cy, cm-1, d);
+      const wd = dt.getDay();
+      const cal = DB.calendario[key];
+      const tipo = cal ? cal.tipo : (wd===0?'DOMINGO':wd===6?'SABADO':'NORMAL');
+      const contaVA = cal !== undefined ? cal.contaVA : wd !== 0;
+      const dias = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+      calRows.push([dt, dias[wd], tipo, contaVA?'SIM':'NÃO', cal?cal.obs:'']);
+    }
+  }
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(calRows), 'CALENDARIO');
+
+  // ─── ABA CONFIG ───────────────────────────────────────────
+  const cfgRows = [
+    ['DESCRIÇÃO','DATA','DIAS UTEIS DO MÊS  REF'],
+    ['COMPETENCIA_ATUAL', comp ? new Date(comp+'-01T12:00:00') : '', DB.config.duAtual||25],
+    ['COMPETENCIA_PROXIMA', compProx ? new Date(compProx+'-01T12:00:00') : '', DB.config.duProximo||25],
+    ['DATA_CORTE', new Date((DB.config.dataCorte||'2015-06-01')+'T12:00:00'), null]
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cfgRows), 'CONFIG');
+
+  const fname = 'PREVIA_' + (comp||'SEM').replace('-','_') + '.xlsx';
+  XLSX.writeFile(wb, fname);
+  toast('Excel exportado: ' + fname, 'ok');
+}
+
+// ═══════════════════════════════════════════════════
+// MODAIS
+// ═══════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.mo').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+// ═══════════════════════════════════════════════════
+// BACKUP / RESTORE
+// ═══════════════════════════════════════════════════
+function backupJSON() {
+  if (!isAdmin()) { toast('Sem permissão para backup!', 'err'); return; }
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'SIGVA_backup_' + new Date().toISOString().slice(0,10) + '.json'; a.click();
+}
+function restoreJSON(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try { DB = JSON.parse(ev.target.result); save(); updateHeader(); renderDash(); toast('Backup restaurado com sucesso', 'ok'); }
+    catch { toast('Erro ao ler arquivo', 'err'); }
+  };
+  reader.readAsText(file);
+}
+function clearAll() {
+  if (!confirm('ATENÇÃO: todos os dados serão removidos. Continuar?')) return;
+  DB = { cadastro:[], eventos:[], calendario:{}, config:{ competenciaAtual:'', competenciaProxima:'', duAtual:25, duProximo:25, dataCorte:'2015-06-01', base:'', coordenador:'' }};
+  save(); updateHeader(); renderDash(); toast('Dados removidos', 'err');
+}
+
+
+// ═══════════════════════════════════════════════════
+// DADOS PRÉ-CARREGADOS DA PLANILHA (111 colaboradores — S. JOSÉ DO RIO PRETO)
+// ═══════════════════════════════════════════════════
+const COLABORADORES_PLANILHA = [{"matr": "22983", "nome": "ADRIELLY CHRISTIANE DE MORAES RODRIGUES VIANA", "admissao": "2025-01-27", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "24952", "nome": "AGATA PEREIRA TORRES", "admissao": "2025-09-25", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2507", "nome": "AGUINALDO FONTES DE FREITAS", "admissao": "2014-03-24", "funcao": "LEIT/ ENT.  MOT.", "base": "POTIRENDABA", "situacao": "ATIVO", "cc": "74"}, {"matr": "9274", "nome": "ALAN BARBOSA ZEGOLE", "admissao": "2024-03-11", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2239", "nome": "ALAN JULIANO MARTINS", "admissao": "2014-03-08", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2259", "nome": "ALBERTH RICHARD ALMEIDA MARQUES", "admissao": "2021-05-13", "funcao": "LEIT/ ENT.  MOT.", "base": "GUARACI", "situacao": "ATIVO", "cc": "74"}, {"matr": "21532", "nome": "ALCIR ONOFRE DE OLIVEIRA DIAS", "admissao": "2024-03-12", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2219", "nome": "ALESSANDRO DE SOUZA CIPOLATO", "admissao": "2014-03-08", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "16432", "nome": "ALEX PINTO DE OLIVEIRA", "admissao": "2022-01-03", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "21555", "nome": "ALEX SANDRO INACIO DE PAULA", "admissao": "2024-03-18", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "18885", "nome": "ALEXANDRE APARECIDO SCUDERO DOS REIS", "admissao": "2023-03-07", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "12675", "nome": "ANDERSON APARECIDO DE JESUS", "admissao": "2019-06-07", "funcao": "LEIT/ ENT.  MOT.", "base": "MONTE APRAZÍVEL", "situacao": "ATIVO", "cc": "74"}, {"matr": "27758", "nome": "ANDERSON FELIX", "admissao": "2026-04-27", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "15891", "nome": "ANDRÉ LUIZ DOS SANTOS", "admissao": "2021-08-18", "funcao": "LEIT/ ENT.  MOT.", "base": "NOVA GRANADA", "situacao": "ATIVO", "cc": "74"}, {"matr": "2262", "nome": "ANTONIO CARLOS BARBOZA", "admissao": "2014-03-08", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "17416", "nome": "BRENDA LARISSA MONDECK DA SILVA", "admissao": "2022-06-28", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "18622", "nome": "BRUNO SANTOS BASTOS", "admissao": "2023-01-12", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "15055", "nome": "CARLOS HENRIQE VIEIRA DE SOUZA", "admissao": "2021-02-01", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "19815", "nome": "CARLOS ROBERTO SOARES DE JESUS", "admissao": "2023-08-14", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2238", "nome": "CLAUDEMIR HERNANDES", "admissao": "2014-03-08", "funcao": "LEIT/ ENT.", "base": "MIRASSOL", "situacao": "ATIVO", "cc": "74"}, {"matr": "2257", "nome": "CLEITON SAULO DE CARLI", "admissao": "2014-03-08", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "23240", "nome": "CRISITIANO ALVES RAMIDES FILHO", "admissao": "2025-03-11", "funcao": "LEIT/ ENT.", "base": "OLIMPIA", "situacao": "ATIVO", "cc": "74"}, {"matr": "17142", "nome": "CRISTIELE MARIA DA TRINDADE", "admissao": "2014-03-08", "funcao": "LEIT/ ENT.", "base": "JOSÉ BONIFACIO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2245", "nome": "DANIEL ANTONIO DA SILVA", "admissao": "2014-03-08", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "22942", "nome": "DANIEL RICARDO DE AVILA MENDES", "admissao": "2025-01-17", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2250", "nome": "DANIEL RODRIGUES MOSCARDO", "admissao": "2014-03-08", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "9357", "nome": "DANILO DOS SANTOS GONÇALVES", "admissao": "2025-02-19", "funcao": "LEIT/ ENT.  MOT.", "base": "MIRASSOL", "situacao": "ATIVO", "cc": "74"}, {"matr": "21558", "nome": "EDGAR FERREIRA DA CRUZ JUNIOR", "admissao": "2024-03-18", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2376", "nome": "ELISIO LEME DE SOUZA", "admissao": "2017-10-16", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "27918", "nome": "ELIVELTON PEREIRA DOS REIS", "admissao": "2026-05-08", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "22922", "nome": "ELYEVERSON DA SILVA ALMEIDA", "admissao": "2025-01-13", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "24212", "nome": "EMANUELE DOS SANTOS SOUZA RODRIGUES", "admissao": "2025-07-07", "funcao": "LEIT/ ENT.", "base": "MIRASSOL", "situacao": "ATIVO", "cc": "74"}, {"matr": "27757", "nome": "EMERSON BATISTA  DE AZEVEDO", "admissao": "2026-04-27", "funcao": "LEIT/ ENT.", "base": "JOSÉ BONIFACIO", "situacao": "ATIVO", "cc": "74"}, {"matr": "9181", "nome": "EVANDRO APARECIDO SCUDERO DOS REIS", "admissao": "2016-02-10", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "22601", "nome": "EVANDRO AUGUSTO MINGORANCE", "admissao": "2024-10-14", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "15627", "nome": "EVERTON LUIS DINARDI", "admissao": "2021-06-07", "funcao": "SUPERVISOR", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "26979", "nome": "EVERTON RAMOS", "admissao": "2026-02-23", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2214", "nome": "EWERTON OLIVEIRA RIBEIRO DOS SANTOS", "admissao": "2022-03-14", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "11511", "nome": "EZEQUIAS MARTINS DE MORAES", "admissao": "2018-07-04", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "27213", "nome": "FABRICIO DE ALMEIDA CLEMENTE", "admissao": "2026-03-09", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2691", "nome": "FERNANDO CESAR PAGLIOTTO", "admissao": "2014-06-12", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "27946", "nome": "FERNANDO HENRIQUE ARABI", "admissao": "2026-05-13", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2658", "nome": "FERNANDO OSCAR BORTOLOTTO BERNARDO", "admissao": "2017-06-13", "funcao": "LEIT/ ENT.  MOT.", "base": "CEDRAL", "situacao": "ATIVO", "cc": "74"}, {"matr": "22927", "nome": "FERNANDO THOME DO NASCIMENTO", "admissao": "2025-01-15", "funcao": "SUPERVISOR", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "24325", "nome": "GABRIELA BEATRIZ PINHEIRO FONSECA", "admissao": "2025-07-17", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "19463", "nome": "GABRIELA LONGANI DE FREITAS", "admissao": "2025-01-07", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "10609", "nome": "GEOVANE BARBOSA DOS SANTOS", "admissao": "2017-06-20", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "21935", "nome": "GEOVANE MARTINS ARAUJO", "admissao": "2024-05-28", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "24271", "nome": "GIOVANA LUCIMARA VERDELBI", "admissao": "2025-07-14", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2264", "nome": "GLEYSON ZEGOLE", "admissao": "2016-01-05", "funcao": "LEIT. DE INST. ESP", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "12920", "nome": "GUILHERME BARBIERI", "admissao": "2019-08-05", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "15388", "nome": "HENRIQUE BRITO PADILHA", "admissao": "2021-04-27", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2818", "nome": "HENRIQUE DA SILVA MELO", "admissao": "2014-12-01", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "23706", "nome": "IKARO BARBOSA BRENNER", "admissao": "2025-06-02", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2826", "nome": "INACIO WANDERLEY DA SILVA MOURA", "admissao": "2025-01-29", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2374", "nome": "IVO LEME DE SOUZA", "admissao": "2014-03-08", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "18597", "nome": "JAILSON PEREIRA DA COSTA", "admissao": "2023-01-05", "funcao": "LEIT/ ENT.  MOT.", "base": "MONTE APRAZÍVEL", "situacao": "ATIVO", "cc": "74"}, {"matr": "17779", "nome": "JEANES DO NASCIMENTO SILVA", "admissao": "2022-09-05", "funcao": "LEIT/ ENT.", "base": "JOSÉ BONIFACIO", "situacao": "ATIVO", "cc": "74"}, {"matr": "22946", "nome": "JILEANE BARBOSA DOS SANTOS NEVES", "admissao": "2025-01-17", "funcao": "LEIT/ ENT.", "base": "GUAPIAÇU", "situacao": "ATIVO", "cc": "74"}, {"matr": "2232", "nome": "JOSE ANTONIO LULIO", "admissao": "2023-01-18", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "13799", "nome": "JOSE HENRIQUE SENA DOS SANTOS", "admissao": "2020-03-13", "funcao": "LEIT/ ENT.", "base": "BADY BASSITT", "situacao": "ATIVO", "cc": "74"}, {"matr": "8264", "nome": "JOSE LUIS DE MIRANDA", "admissao": "2015-12-18", "funcao": "LEIT/ ENT.", "base": "MIRASSOL", "situacao": "ATIVO", "cc": "74"}, {"matr": "21480", "nome": "JOÃO RICARDO DE AZEVEDO", "admissao": "2024-03-06", "funcao": "LEIT/ ENT.", "base": "BADY BASSITT", "situacao": "ATIVO", "cc": "74"}, {"matr": "23545", "nome": "JULIA CRISTINA FELIX", "admissao": "2025-05-07", "funcao": "AUXILIAR ADMINISTRATIVO", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "21802", "nome": "JULY DIAS DE ALMEIDA", "admissao": "2024-04-25", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2233", "nome": "KLEBER DE OLIVEIRA SILVERIO", "admissao": "2014-03-08", "funcao": "LEIT. DE INST. ESP", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "22141", "nome": "LARISSA CAROLYNE TIBUCO DA SILVA", "admissao": "2024-07-05", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "9666", "nome": "LEONARDO DIAS SILVA", "admissao": "2026-03-04", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "21651", "nome": "LUAN ALVES MACHADO DE SOUZA", "admissao": "2024-04-01", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2377", "nome": "LUAN HENRIQUE MACHADO RAMOS", "admissao": "2014-03-08", "funcao": "SUPERVISOR", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "10106", "nome": "LUAN IGNACIO", "admissao": "2017-02-09", "funcao": "LEIT/ ENT.", "base": "OLIMPIA", "situacao": "ATIVO", "cc": "74"}, {"matr": "24622", "nome": "LUCAS CARDOSO FERREIRA", "admissao": "2025-08-21", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "23023", "nome": "LUIS  RICARDO RODRIGUES DA SILVA", "admissao": "2025-02-05", "funcao": "LEIT/ ENT.  MOT.", "base": "OLIMPIA", "situacao": "ATIVO", "cc": "74"}, {"matr": "22215", "nome": "LUIS HENRIQUE SANTOS DA SILVA", "admissao": "2024-07-24", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "22772", "nome": "LUIZ FRANCISCO PEREIRA DE CARVALHO", "admissao": "2024-11-25", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2254", "nome": "LUIZ HENRIQUE DA CUNHA", "admissao": "2024-05-06", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2213", "nome": "MARCO DE SOUZA SANTOS", "admissao": "2014-03-08", "funcao": "LEIT. DE INST. ESP", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2228", "nome": "MARCOS PAULO DE OLIVEIRA BORGES", "admissao": "2014-03-08", "funcao": "LEIT/ ENT.  MOT.", "base": "BADY BASSITT", "situacao": "ATIVO", "cc": "74"}, {"matr": "22343", "nome": "MARCOS PAULO SILVA ARAUJO", "admissao": "2024-08-13", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2260", "nome": "MARCOS ROBERTO GOMES", "admissao": "2019-02-01", "funcao": "LEIT/ ENT.  MOT.", "base": "MIRASSOL", "situacao": "ATIVO", "cc": "74"}, {"matr": "23575", "nome": "MARIANA DOS REIS ARANTES DA SILVA", "admissao": "2025-05-14", "funcao": "LEIT/ ENT.", "base": "MIRASSOL", "situacao": "ATIVO", "cc": "74"}, {"matr": "26287", "nome": "MATHEUS SANTOS ANDRADE", "admissao": "2026-01-08", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "24411", "nome": "MOISES ALVES SANT ANA", "admissao": "2025-08-04", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "24590", "nome": "NATALIA DE FATIMA DOS SANTOS", "admissao": "2025-08-18", "funcao": "LEIT/ ENT.", "base": "MIRASSOL", "situacao": "ATIVO", "cc": "74"}, {"matr": "2243", "nome": "PAULO RICARDO BIZUTI", "admissao": "2023-07-17", "funcao": "LEIT. DE INST. ESP", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "19515", "nome": "PAULO ROBSON ALVES DOS SANTOS", "admissao": "2017-10-25", "funcao": "LEIT/ ENT.  MOT.", "base": "NOVA GRANADA", "situacao": "ATIVO", "cc": "74"}, {"matr": "2230", "nome": "PAULO RODRIGUES VIEIRA", "admissao": "2014-03-08", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2585", "nome": "PAULO ROGERIO DE SOUZA", "admissao": "2021-02-12", "funcao": "LEIT/ ENT.", "base": "JOSÉ BONIFACIO", "situacao": "ATIVO", "cc": "74"}, {"matr": "14097", "nome": "PEDRO HENRIQUE CORREIA DA SILVA", "admissao": "2020-06-05", "funcao": "LEIT/ ENT.", "base": "OLIMPIA", "situacao": "ATIVO", "cc": "74"}, {"matr": "12104", "nome": "PEDRO HENRIQUE DE SOUZA", "admissao": "2024-07-15", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "13809", "nome": "RAFAEL MARQUES SERENO", "admissao": "2020-03-16", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "27641", "nome": "RAFAEL ROSALVO SEIXAS", "admissao": "2026-04-09", "funcao": "LEIT/ ENT.  MOT.", "base": "BADY BASSITT", "situacao": "ATIVO", "cc": "74"}, {"matr": "18666", "nome": "RENAN DA SILVA GIL", "admissao": "2023-01-19", "funcao": "LEIT/ ENT.  MOT.", "base": "NOVA GRANADA", "situacao": "ATIVO", "cc": "74"}, {"matr": "23261", "nome": "RENAN EGYDIO", "admissao": "2025-03-11", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2217", "nome": "RENATO ZANETI MELO", "admissao": "2014-03-08", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "24561", "nome": "RICHARD ALVES ZIVIANI", "admissao": "2025-08-13", "funcao": "LEIT/ ENT.", "base": "OLIMPIA", "situacao": "ATIVO", "cc": "74"}, {"matr": "2234", "nome": "ROBERTO MIGUEL FERNANDES", "admissao": "2023-12-19", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "22528", "nome": "RYAN FELIPE DA SILVA CORMINEIRO", "admissao": "2024-09-26", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2509", "nome": "SANDRO DE SOUZA TALIN", "admissao": "2014-03-24", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "25893", "nome": "THIAGO DUARTE DA SILVA", "admissao": "2025-12-02", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2225", "nome": "VALDOMIRO NERI JUNIOR", "admissao": "2014-03-12", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "9474", "nome": "WAGNER ROBERTO BERTUGA", "admissao": "2016-08-12", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "12173", "nome": "WASHINGTON DOS SANTOS ARAUJO", "admissao": "2019-03-20", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "22593", "nome": "WESLEY NATHAN SANTOS XAVIER GOMES", "admissao": "2024-10-14", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2248", "nome": "WESLEY PAULO ZAMPIERI", "admissao": "2014-03-08", "funcao": "LEIT/ ENT.  MOT.", "base": "TANABI", "situacao": "ATIVO", "cc": "74"}, {"matr": "21996", "nome": "WESTER PABLO DE PAULA", "admissao": "2024-06-11", "funcao": "LEIT/ ENT.  MOT.", "base": "JOSÉ BONIFACIO", "situacao": "ATIVO", "cc": "74"}, {"matr": "2501", "nome": "WILLIAN GONSALVES DA SILVA", "admissao": "2014-03-21", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "15336", "nome": "WILLIAN LOURENÇO DA COSTA SILVA", "admissao": "2021-04-08", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "12509", "nome": "WILLIANS DA SILVA", "admissao": "2019-04-09", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "26915", "nome": "WINER JOSE CLEMENTE FERREIRA", "admissao": "2026-02-19", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "21453", "nome": "YOHANA MARA SETIN DA SILVA", "admissao": "2024-03-06", "funcao": "AGENTE COMERCIAL", "base": "SAO JOSE RIO PRETO", "situacao": "ATIVO", "cc": "74"}, {"matr": "11998", "nome": "ANDERSON JOSE LUIZ BARBOSA NOGUEIRA", "admissao": "2024-03-07", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "DEMITIDO", "cc": "74", "desligamento": "2026-05-06"}, {"matr": "26690", "nome": "AQUILES SILVA PEREIRA", "admissao": "2026-02-04", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "DEMITIDO", "cc": "74", "desligamento": "2026-05-04"}, {"matr": "23570", "nome": "ERIC CAVALCANTE DE OLIVEIRA", "admissao": "2025-05-13", "funcao": "LEIT/ ENT.  MOT.", "base": "SAO JOSE RIO PRETO", "situacao": "DEMITIDO", "cc": "74", "desligamento": "2026-05-04"}, {"matr": "26978", "nome": "GERALDO TADEU NUNES DE OLIVEIRA", "admissao": "2026-02-23", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "DEMITIDO", "cc": "74", "desligamento": "2026-05-13"}, {"matr": "27590", "nome": "VICTOR HENRIQUE SANTOS DE FRANCA", "admissao": "2026-04-07", "funcao": "LEIT/ ENT.", "base": "SAO JOSE RIO PRETO", "situacao": "DEMITIDO", "cc": "74", "desligamento": "2026-05-06"}];
+
+
+const EVENTOS_INICIAIS = [{"matr": "15336", "nome": "WILLIAN LOURENÇO DA COSTA SILVA", "tipo": "ATESTADO", "data": "2026-05-04", "dataFim": "2026-05-08", "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 5}, {"matr": "17142", "nome": "CRISTIELE MARIA DA TRINDADE", "tipo": "ATESTADO", "data": "2026-05-02", "dataFim": "2026-05-14", "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 9}, {"matr": "17416", "nome": "BRENDA LARISSA MONDECK DA SILVA", "tipo": "ATESTADO", "data": "2026-05-02", "dataFim": "2026-05-14", "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 9}, {"matr": "19463", "nome": "GABRIELA LONGANI DE FREITAS", "tipo": "FALTA INJUSTIFICADA", "data": "2026-05-08", "dataFim": null, "ausencia": "SIM", "justificada": "NÃO", "obs": "", "diasCount": 1}, {"matr": "21480", "nome": "JOÃO RICARDO DE AZEVEDO", "tipo": "ATESTADO", "data": "2026-05-12", "dataFim": null, "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 1}, {"matr": "21480", "nome": "JOÃO RICARDO DE AZEVEDO", "tipo": "FALTA INJUSTIFICADA", "data": "2026-05-07", "dataFim": null, "ausencia": "SIM", "justificada": "NÃO", "obs": "", "diasCount": 1}, {"matr": "21555", "nome": "ALEX SANDRO INACIO DE PAULA", "tipo": "ATESTADO", "data": "2026-05-09", "dataFim": null, "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 1}, {"matr": "21555", "nome": "ALEX SANDRO INACIO DE PAULA", "tipo": "FALTA INJUSTIFICADA", "data": "2026-05-05", "dataFim": null, "ausencia": "SIM", "justificada": "NÃO", "obs": "", "diasCount": 1}, {"matr": "2243", "nome": "PAULO RICARDO BIZUTI", "tipo": "ATESTADO", "data": "2026-05-12", "dataFim": null, "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 1}, {"matr": "22983", "nome": "ADRIELLY CHRISTIANE DE MORAES RODRIGUES VIANA", "tipo": "ATESTADO", "data": "2026-05-13", "dataFim": null, "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 1}, {"matr": "24271", "nome": "GIOVANA LUCIMARA VERDELBI", "tipo": "ATESTADO", "data": "2026-05-02", "dataFim": null, "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 1}, {"matr": "24622", "nome": "LUCAS CARDOSO FERREIRA", "tipo": "ATESTADO", "data": "2026-05-06", "dataFim": null, "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 1}, {"matr": "2585", "nome": "PAULO ROGERIO DE SOUZA", "tipo": "FALTA INJUSTIFICADA", "data": "2026-05-04", "dataFim": null, "ausencia": "SIM", "justificada": "NÃO", "obs": "", "diasCount": 1}, {"matr": "25893", "nome": "THIAGO DUARTE DA SILVA", "tipo": "ATESTADO", "data": "2026-05-02", "dataFim": "2026-05-14", "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 9}, {"matr": "25893", "nome": "THIAGO DUARTE DA SILVA", "tipo": "FALTA INJUSTIFICADA", "data": "2026-05-07", "dataFim": null, "ausencia": "SIM", "justificada": "NÃO", "obs": "", "diasCount": 1}, {"matr": "27758", "nome": "ANDERSON FELIX", "tipo": "FALTA INJUSTIFICADA", "data": "2026-05-11", "dataFim": null, "ausencia": "SIM", "justificada": "NÃO", "obs": "", "diasCount": 1}, {"matr": "9666", "nome": "LEONARDO DIAS SILVA", "tipo": "ATESTADO", "data": "2026-05-08", "dataFim": null, "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 1}, {"matr": "9666", "nome": "LEONARDO DIAS SILVA", "tipo": "ATESTADO", "data": "2026-05-12", "dataFim": "2026-05-13", "ausencia": "SIM", "justificada": "SIM", "obs": "", "diasCount": 2}, {"matr": "11998", "nome": "ANDERSON JOSE LUIZ BARBOSA NOGUEIRA", "tipo": "DEMISSÃO", "data": "2026-05-06", "dataFim": null, "ausencia": "NÃO", "justificada": "NÃO", "obs": "Desligamento", "diasCount": 0}, {"matr": "26690", "nome": "AQUILES SILVA PEREIRA", "tipo": "DEMISSÃO", "data": "2026-05-04", "dataFim": null, "ausencia": "NÃO", "justificada": "NÃO", "obs": "Desligamento", "diasCount": 0}, {"matr": "23570", "nome": "ERIC CAVALCANTE DE OLIVEIRA", "tipo": "DEMISSÃO", "data": "2026-05-04", "dataFim": null, "ausencia": "NÃO", "justificada": "NÃO", "obs": "Desligamento", "diasCount": 0}, {"matr": "26978", "nome": "GERALDO TADEU NUNES DE OLIVEIRA", "tipo": "DEMISSÃO", "data": "2026-05-13", "dataFim": null, "ausencia": "NÃO", "justificada": "NÃO", "obs": "Desligamento", "diasCount": 0}, {"matr": "27590", "nome": "VICTOR HENRIQUE SANTOS DE FRANCA", "tipo": "DEMISSÃO", "data": "2026-05-06", "dataFim": null, "ausencia": "NÃO", "justificada": "NÃO", "obs": "Desligamento", "diasCount": 0}];
+function initWithPlanilha() {
+  // Não faz nada — inicialização agora é feita dentro de load()
+}
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+verificarLogin();
+load();
+</script>
+
+<!-- ═══════════════ MODAL NOVO/EDITAR USUÁRIO ═══════════════ -->
+<div class="mo" id="mo-admin-user">
+  <div class="mo-box">
+    <div class="mo-hdr">
+      <span class="mo-title" id="mo-admin-title">Novo Usuário</span>
+      <button class="mo-close" onclick="closeModal('mo-admin-user')">✕</button>
+    </div>
+    <div class="mo-body">
+      <div class="fld"><label>Usuário (login)</label><input id="au-username" type="text" placeholder="Ex: maria"></div>
+      <div class="fld"><label>Nome completo</label><input id="au-name" type="text" placeholder="Ex: Maria Silva"></div>
+      <div class="fld"><label>Senha <span style="color:var(--rose)">*</span></label><input id="au-pwd" type="password" placeholder="Mínimo 6 caracteres"></div>
+      <div class="fld"><label>Email</label><input id="au-email" type="email" placeholder="Ex: maria@grupotcm.com.br"></div>
+      <div class="fld"><label>Perfil</label>
+        <select id="au-role">
+          <option value="OPERADOR">Operador</option>
+          <option value="ADMIN">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="mo-footer" style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="salvarUsuario()">💾 Salvar</button>
+      <button class="btn btn-ghost" onclick="closeModal('mo-admin-user')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
