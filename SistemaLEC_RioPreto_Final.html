@@ -1018,15 +1018,17 @@ function save() {
   localStorage.setItem('fpd_rp_ultima_edicao', JSON.stringify(registro));
   atualizarCardUltimaEdicao(registro);
 
-  // Salvar no localStorage
-  try {
-    localStorage.setItem('fpd_rp_data', JSON.stringify({
+  // Salvar no servidor central
+  fetch('/api/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       cadastro: DB.cadastro,
       eventos: DB.eventos,
       calendario: DB.calendario,
       config: DB.config
-    }));
-  } catch(e) { console.warn('Erro ao salvar:', e); }
+    })
+  }).catch(e => console.warn('Erro ao salvar no servidor:', e));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1456,29 +1458,38 @@ async function fazerLogin() {
   const u = document.getElementById('login-user').value.trim().toLowerCase();
   const p = document.getElementById('login-pass').value;
   const err = document.getElementById('login-err');
-
   if (!u || !p) { err.textContent = 'Preencha usuário e senha'; return; }
-
-  const users = getUsers();
-  const user = users[u];
-  if (!user || user.ativo === false) { err.textContent = 'Usuário ou senha incorretos'; document.getElementById('login-pass').value = ''; return; }
-  // Verificar senha via SHA-256
-  const hashSenha = await sha256Async(p);
-  if (user.pwd !== hashSenha) { err.textContent = 'Usuário ou senha incorretos'; document.getElementById('login-pass').value = ''; return; }
-
-  sessionStorage.setItem('fpd_user', u);
-  sessionStorage.setItem('fpd_role', user.role || 'OPERADOR');
-  sessionStorage.setItem('fpd_name', user.name || u);
-  document.getElementById('login-screen').style.display = 'none';
-  document.body.style.overflow = '';
-  updateHeader();
-  aplicarPermissoes();
-  const tbUser = document.getElementById('tb-user-nome');
-  if (tbUser) tbUser.textContent = user.name;
-  registrarAuditoria(u, 'LOGIN', 'Acesso ao sistema');
-  toast('Bem-vindo, ' + user.name + '!', 'ok');
-  err.textContent = '';
-  load();
+  err.textContent = 'Verificando...';
+  fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ usuario: u, senha: p })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      sessionStorage.setItem('fpd_user', data.user.usuario);
+      sessionStorage.setItem('fpd_role', data.user.role || 'OPERADOR');
+      sessionStorage.setItem('fpd_name', data.user.name || data.user.usuario);
+      document.getElementById('login-screen').style.display = 'none';
+      document.body.style.overflow = '';
+      updateHeader();
+      aplicarPermissoes();
+      const tbUser = document.getElementById('tb-user-nome');
+      if (tbUser) tbUser.textContent = data.user.name;
+      registrarAuditoria(data.user.usuario, 'LOGIN', 'Acesso ao sistema');
+      toast('Bem-vindo, ' + data.user.name + '!', 'ok');
+      err.textContent = '';
+      load();
+    } else {
+      err.textContent = data.erro || 'Usuário ou senha incorretos';
+      document.getElementById('login-pass').value = '';
+    }
+  })
+  .catch(() => {
+    err.textContent = 'Erro de conexão. Tente novamente.';
+    document.getElementById('login-pass').value = '';
+  });
 }
 
 
@@ -1515,30 +1526,39 @@ function fazerLogout() {
   if (!confirm('Deseja sair do sistema?')) return;
   const _uLog = sessionStorage.getItem('fpd_user');
   if (_uLog) registrarAuditoria(_uLog, 'LOGOUT', 'Saiu do sistema');
-  sessionStorage.clear();
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-user').value = '';
-  document.getElementById('login-pass').value = '';
-  document.getElementById('login-err').textContent = '';
-  document.body.style.overflow = 'hidden';
+  fetch('/api/logout', { method: 'POST' }).finally(() => {
+    sessionStorage.clear();
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('login-user').value = '';
+    document.getElementById('login-pass').value = '';
+    document.getElementById('login-err').textContent = '';
+    document.body.style.overflow = 'hidden';
+  });
 }
 
 function verificarLogin() {
-  const u = sessionStorage.getItem('fpd_user');
-  if (u) {
-    const users = getUsers();
-    const user = users[u];
-    if (user && user.ativo !== false) {
-      document.getElementById('login-screen').style.display = 'none';
-      const tbUser = document.getElementById('tb-user-nome');
-      if (tbUser) tbUser.textContent = user.name;
-      aplicarPermissoes();
-      load();
-      return;
-    }
-  }
-  document.getElementById('login-screen').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
+  fetch('/api/me')
+    .then(r => r.json())
+    .then(data => {
+      if (data.user) {
+        sessionStorage.setItem('fpd_user', data.user.usuario);
+        sessionStorage.setItem('fpd_role', data.user.role || 'OPERADOR');
+        sessionStorage.setItem('fpd_name', data.user.name || data.user.usuario);
+        document.getElementById('login-screen').style.display = 'none';
+        const tbUser = document.getElementById('tb-user-nome');
+        if (tbUser) tbUser.textContent = data.user.name;
+        aplicarPermissoes();
+        load();
+      } else {
+        document.getElementById('login-screen').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+    })
+    .catch(() => {
+      const u = sessionStorage.getItem('fpd_user');
+      if (u) { document.getElementById('login-screen').style.display = 'none'; aplicarPermissoes(); load(); }
+      else { document.getElementById('login-screen').style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+    });
 }
 
 document.addEventListener('keypress', e => {
@@ -1549,34 +1569,39 @@ document.addEventListener('keypress', e => {
 
 
 function load() {
-  try {
-    const saved = localStorage.getItem('fpd_rp_data');
-    if (saved) {
-      const data = JSON.parse(saved);
+  fetch('/api/data')
+    .then(r => r.json())
+    .then(data => {
       if (data && data.cadastro && data.cadastro.length > 0) {
         DB.cadastro = data.cadastro;
         DB.eventos = data.eventos || [];
         DB.calendario = data.calendario || {};
         if (data.config) DB.config = Object.assign(DB.config, data.config);
+      } else {
+        if (DB.cadastro.length === 0) {
+          DB.cadastro = COLABORADORES_PLANILHA.map(c => ({...c}));
+          DB.eventos = EVENTOS_INICIAIS.map(e => ({...e}));
+          DB.config.competenciaAtual = DB.config.competenciaAtual || '2026-05';
+          DB.config.competenciaProxima = DB.config.competenciaProxima || '2026-06';
+          DB.config.duAtual = DB.config.duAtual || 22;
+          DB.config.duProximo = DB.config.duProximo || 22;
+          DB.config.dataCorte = DB.config.dataCorte || '2015-06-01';
+          DB.config.base = DB.config.base || 'S. JOSÉ DO RIO PRETO';
+          save();
+        }
       }
-    }
-    if (DB.cadastro.length === 0) {
-      DB.cadastro = COLABORADORES_PLANILHA.map(c => ({...c}));
-      DB.eventos = EVENTOS_INICIAIS.map(e => ({...e}));
-      DB.config.competenciaAtual = DB.config.competenciaAtual || '2026-05';
-      DB.config.competenciaProxima = DB.config.competenciaProxima || '2026-06';
-      DB.config.duAtual = DB.config.duAtual || 22;
-      DB.config.duProximo = DB.config.duProximo || 22;
-      DB.config.dataCorte = DB.config.dataCorte || '2015-06-01';
-      DB.config.base = DB.config.base || 'S. JOSÉ DO RIO PRETO';
-    }
-  } catch(e) { console.warn('Erro ao carregar:', e); }
-  DB_READY = true;
-  popularFeriadosNoCalendario();
-  updateHeader();
-  renderDash();
-  const el = document.getElementById('ev-filter-mes');
-  if (el && DB.config.competenciaAtual) el.value = DB.config.competenciaAtual;
+      DB_READY = true;
+      popularFeriadosNoCalendario();
+      updateHeader();
+      renderDash();
+      const el = document.getElementById('ev-filter-mes');
+      if (el && DB.config.competenciaAtual) el.value = DB.config.competenciaAtual;
+    })
+    .catch(e => {
+      console.warn('Servidor indisponível:', e);
+      DB_READY = true;
+      updateHeader();
+    });
 }
 
 // ═══════════════════════════════════════════════════
