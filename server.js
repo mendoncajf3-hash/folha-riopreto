@@ -34,21 +34,21 @@ function loadDB() {
 // Save database with backup
 function saveDB(data, backupSuffix = 'auto') {
   try {
-    // Auto backup
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupName = `db_${timestamp}_${backupSuffix}.json`;
-    const backupPath = path.join(BACKUPS_DIR, backupName);
-    
+    // Auto backup - apenas se db.json já existe
     if (fs.existsSync(DB_PATH)) {
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const backupName = `db_${timestamp}_${backupSuffix}.json`;
+      const backupPath = path.join(BACKUPS_DIR, backupName);
+      
       fs.copyFileSync(DB_PATH, backupPath);
-    }
-    
-    // Keep only 30 backups
-    const files = fs.readdirSync(BACKUPS_DIR).sort().reverse();
-    if (files.length > 30) {
-      files.slice(30).forEach(f => {
-        fs.unlinkSync(path.join(BACKUPS_DIR, f));
-      });
+      
+      // Keep only 30 backups
+      const files = fs.readdirSync(BACKUPS_DIR).sort().reverse();
+      if (files.length > 30) {
+        files.slice(30).forEach(f => {
+          fs.unlinkSync(path.join(BACKUPS_DIR, f));
+        });
+      }
     }
     
     fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
@@ -162,7 +162,7 @@ app.post('/api/ai', async (req, res) => {
   }
 });
 
-// Startup backup
+// Initialize DB if not exists
 if (!fs.existsSync(DB_PATH)) {
   const defaultDB = {
     cadastro: [],
@@ -180,10 +180,8 @@ if (!fs.existsSync(DB_PATH)) {
       { usuario: 'luan', senha: 'lec@luan#789', name: 'Luan', role: 'OPERADOR' }
     ]
   };
-  saveDB(defaultDB, 'startup');
+  fs.writeFileSync(DB_PATH, JSON.stringify(defaultDB, null, 2), 'utf-8');
   console.log('Database inicializado');
-} else {
-  saveDB(loadDB(), 'startup');
 }
 
 // Start server
