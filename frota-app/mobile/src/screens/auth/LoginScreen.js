@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button, Text, Surface } from 'react-native-paper';
-import { supabase } from '../../services/supabase';
+import { login } from '../../services/authService';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
@@ -14,9 +14,13 @@ export default function LoginScreen() {
       return;
     }
     setCarregando(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+    try {
+      await login(email.toLowerCase().trim(), senha);
+      navigation.replace('Home');
+    } catch (e) {
+      Alert.alert('Erro', e.message === 'Credenciais inválidas.' ? 'E-mail ou senha incorretos.' : e.message);
+    }
     setCarregando(false);
-    if (error) Alert.alert('Erro', error.message);
   }
 
   return (

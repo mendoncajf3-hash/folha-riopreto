@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Text, Button, TextInput, Surface, Divider } from 'react-native-paper';
 import { iniciarVistoria } from '../../services/vistoriaService';
-import { supabase } from '../../services/supabase';
 
 export default function IniciarVistoriaScreen({ route, navigation }) {
   const { veiculo } = route.params;
@@ -16,22 +15,10 @@ export default function IniciarVistoriaScreen({ route, navigation }) {
     }
     setIniciando(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: colaborador } = await supabase
-        .from('colaboradores')
-        .select('id')
-        .eq('email', user.email)
-        .single();
-
-      const vistoria = await iniciarVistoria({
-        veiculoId: veiculo.id,
-        colaboradorId: colaborador.id,
-        kmRetirada: Number(km),
-      });
-
+      const vistoria = await iniciarVistoria({ veiculoId: veiculo.id, kmRetirada: Number(km) });
       navigation.navigate('Fotos', { vistoriaId: vistoria.id, momento: 'retirada' });
     } catch (e) {
-      Alert.alert('Erro', 'Não foi possível iniciar a vistoria.');
+      Alert.alert('Erro', e.message || 'Não foi possível iniciar a vistoria.');
     }
     setIniciando(false);
   }
@@ -46,11 +33,11 @@ export default function IniciarVistoriaScreen({ route, navigation }) {
         <Divider style={styles.divider} />
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Cor:</Text>
-          <Text style={styles.infoValor}>{veiculo.cor}</Text>
+          <Text style={styles.infoValor}>{veiculo.cor || '–'}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Ano:</Text>
-          <Text style={styles.infoValor}>{veiculo.ano}</Text>
+          <Text style={styles.infoValor}>{veiculo.ano || '–'}</Text>
         </View>
       </Surface>
 

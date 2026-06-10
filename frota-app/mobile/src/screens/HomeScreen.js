@@ -1,39 +1,32 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, FlatList, StyleSheet, RefreshControl } from 'react-native';
 import { Text, Button, Surface, Chip, Divider, ActivityIndicator } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
-import { supabase } from '../services/supabase';
+import { getUsuarioSalvo, logout } from '../services/authService';
 import { buscarHistorico } from '../services/vistoriaService';
 
 export default function HomeScreen({ navigation }) {
-  const [colaborador, setColaborador] = useState(null);
+  const [usuario, setUsuario] = useState(null);
   const [historico, setHistorico] = useState([]);
   const [emUso, setEmUso] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   async function carregar() {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data: colab } = await supabase
-      .from('colaboradores')
-      .select('*')
-      .eq('email', user.email)
-      .single();
-    setColaborador(colab);
-
-    const hist = await buscarHistorico(colab.id);
+    const u = await getUsuarioSalvo();
+    setUsuario(u);
+    const hist = await buscarHistorico();
     setHistorico(hist);
-
-    const ativo = hist.find((v) => v.status === 'em_uso');
-    setEmUso(ativo || null);
+    setEmUso(hist.find((v) => v.status === 'em_uso') || null);
     setCarregando(false);
     setRefreshing(false);
   }
 
   useFocusEffect(useCallback(() => { carregar(); }, []));
 
-  function sair() {
-    supabase.auth.signOut();
+  async function sair() {
+    await logout();
+    navigation.replace('Login');
   }
 
   if (carregando) return <ActivityIndicator style={{ flex: 1 }} />;
@@ -43,13 +36,13 @@ export default function HomeScreen({ navigation }) {
       <Surface style={styles.header} elevation={2}>
         <View>
           <Text variant="titleMedium" style={styles.nomeColaborador}>
-            Olá, {colaborador?.nome?.split(' ')[0]}
+            Olá, {usuario?.nome?.split(' ')[0]}
           </Text>
           <Text variant="bodySmall" style={styles.matricula}>
-            Matrícula: {colaborador?.matricula}
+            Matrícula: {usuario?.matricula}
           </Text>
         </View>
-        <Button mode="text" onPress={sair} compact textColor="#666">Sair</Button>
+        <Button mode="text" onPress={sair} compact textColor="#90caf9">Sair</Button>
       </Surface>
 
       {emUso ? (
@@ -90,7 +83,9 @@ export default function HomeScreen({ navigation }) {
       <FlatList
         data={historico.filter((v) => v.status === 'devolvido')}
         keyExtractor={(item) => item.id}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); carregar(); }} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); carregar(); }} />
+        }
         renderItem={({ item }) => (
           <Surface style={styles.historicoItem} elevation={1}>
             <View style={styles.historicoRow}>

@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { Text, Button, Surface } from 'react-native-paper';
 import SignatureCanvas from 'react-native-signature-canvas';
-import { supabase } from '../../services/supabase';
+import { salvarAssinatura } from '../../services/vistoriaService';
 
 export default function AssinaturaScreen({ route, navigation }) {
   const { vistoriaId, momento } = route.params;
@@ -13,17 +13,11 @@ export default function AssinaturaScreen({ route, navigation }) {
   async function salvar(assinaturaBase64) {
     setSalvando(true);
     try {
-      const campo = momento === 'retirada' ? 'assinatura_retirada' : 'assinatura_devolucao';
-      const { error } = await supabase
-        .from('vistorias')
-        .update({ [campo]: assinaturaBase64 })
-        .eq('id', vistoriaId);
-      if (error) throw error;
-
+      await salvarAssinatura(vistoriaId, momento, assinaturaBase64);
       if (momento === 'retirada') {
-        navigation.navigate('Home', { vistoriaConcluida: true });
+        navigation.navigate('Home');
       } else {
-        navigation.navigate('DevolucaoConcluida', { vistoriaId });
+        navigation.navigate('DevolucaoConcluida');
       }
     } catch (e) {
       Alert.alert('Erro', 'Não foi possível salvar a assinatura.');
