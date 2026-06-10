@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Box, Paper, Typography, TextField, Button, Alert } from '@mui/material';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
-import { supabase } from '../services/supabase';
+import { api } from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 export default function Login() {
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
@@ -13,8 +15,12 @@ export default function Login() {
     e.preventDefault();
     setErro('');
     setCarregando(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-    if (error) setErro('E-mail ou senha incorretos.');
+    try {
+      const { token, usuario } = await api.post('/auth/login', { email, senha });
+      login(token, usuario);
+    } catch (err) {
+      setErro(err.message || 'E-mail ou senha incorretos.');
+    }
     setCarregando(false);
   }
 
@@ -30,34 +36,13 @@ export default function Login() {
         {erro && <Alert severity="error" sx={{ mb: 2 }}>{erro}</Alert>}
 
         <Box component="form" onSubmit={entrar}>
-          <TextField
-            label="E-mail"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            fullWidth
-            size="small"
-            sx={{ mb: 2 }}
-            autoFocus
-          />
-          <TextField
-            label="Senha"
-            type="password"
-            value={senha}
-            onChange={(e) => setSenha(e.target.value)}
-            fullWidth
-            size="small"
-            sx={{ mb: 3 }}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            size="large"
-            loading={carregando}
-            disabled={!email || !senha || carregando}
-          >
-            Entrar
+          <TextField label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            fullWidth size="small" sx={{ mb: 2 }} autoFocus />
+          <TextField label="Senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)}
+            fullWidth size="small" sx={{ mb: 3 }} />
+          <Button type="submit" variant="contained" fullWidth size="large"
+            disabled={!email || !senha || carregando}>
+            {carregando ? 'Entrando...' : 'Entrar'}
           </Button>
         </Box>
       </Paper>

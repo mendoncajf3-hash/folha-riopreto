@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { createTheme, ThemeProvider, CssBaseline, CircularProgress, Box } from '@mui/material';
+import { createTheme, ThemeProvider, CssBaseline } from '@mui/material';
 import { useAuth } from './hooks/useAuth';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -19,17 +19,8 @@ const tema = createTheme({
 });
 
 function Rotas() {
-  const { sessao, carregando } = useAuth();
-
-  if (carregando) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (!sessao) return <Login />;
+  const { autenticado } = useAuth();
+  if (!autenticado) return <Login />;
 
   return (
     <Layout>

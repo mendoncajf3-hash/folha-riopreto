@@ -1,14 +1,23 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../services/supabase';
+import { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 export function useAuth() {
-  const [sessao, setSessao] = useState(undefined);
+  const [usuario, setUsuario] = useState(() => {
+    const salvo = localStorage.getItem('usuario');
+    return salvo ? JSON.parse(salvo) : null;
+  });
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSessao(data.session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => setSessao(s));
-    return () => listener.subscription.unsubscribe();
-  }, []);
+  function login(token, dadosUsuario) {
+    localStorage.setItem('token', token);
+    localStorage.setItem('usuario', JSON.stringify(dadosUsuario));
+    setUsuario(dadosUsuario);
+  }
 
-  return { sessao, carregando: sessao === undefined };
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('usuario');
+    setUsuario(null);
+  }
+
+  return { usuario, login, logout, autenticado: !!usuario };
 }

@@ -10,7 +10,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../services/supabase';
+import { useAuth } from '../hooks/useAuth';
 
 const LARGURA = 220;
 
@@ -24,10 +24,11 @@ const MENU = [
 export default function Layout({ children }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { logout } = useAuth();
   const [mobileAberto, setMobileAberto] = useState(false);
 
   function sair() {
-    supabase.auth.signOut();
+    logout();
   }
 
   const drawer = (

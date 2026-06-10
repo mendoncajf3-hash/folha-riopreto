@@ -1,0 +1,63 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: frota_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: frota
+      POSTGRES_USER: frota
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - frota_net
+
+  backend:
+    build: ./backend
+    container_name: frota_api
+    restart: unless-stopped
+    env_file: ./backend/.env
+    depends_on:
+      - postgres
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - frota_net
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: frota_web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - frota_net
+
+  nginx:
+    image: nginx:alpine
+    container_name: frota_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - nginx_certs:/etc/letsencrypt
+    depends_on:
+      - web
+      - backend
+    networks:
+      - frota_net
+
+volumes:
+  postgres_data:
+  uploads_data:
+  nginx_certs:
+
+networks:
+  frota_net:
+    driver: bridge
