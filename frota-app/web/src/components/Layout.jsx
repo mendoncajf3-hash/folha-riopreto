@@ -8,7 +8,9 @@ import AssessmentIcon from '@mui/icons-material/Assessment';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import PeopleIcon from '@mui/icons-material/People';
 import MenuIcon from '@mui/icons-material/Menu';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '../services/supabase';
 
 const LARGURA = 220;
 
@@ -24,25 +26,43 @@ export default function Layout({ children }) {
   const { pathname } = useLocation();
   const [mobileAberto, setMobileAberto] = useState(false);
 
+  function sair() {
+    supabase.auth.signOut();
+  }
+
   const drawer = (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar sx={{ backgroundColor: '#1565C0' }}>
         <Typography variant="h6" color="white" fontWeight="bold">Frota App</Typography>
       </Toolbar>
       <Divider />
-      <List>
+      <List sx={{ flexGrow: 1 }}>
         {MENU.map(({ label, icon, path }) => (
           <ListItem key={path} disablePadding>
             <ListItemButton
-              selected={pathname === path}
+              selected={pathname === path || (path !== '/' && pathname.startsWith(path))}
               onClick={() => { navigate(path); setMobileAberto(false); }}
               sx={{ '&.Mui-selected': { backgroundColor: '#e3f2fd', borderRight: '3px solid #1565C0' } }}
             >
-              <ListItemIcon sx={{ color: pathname === path ? '#1565C0' : 'inherit' }}>{icon}</ListItemIcon>
-              <ListItemText primary={label} primaryTypographyProps={{ fontWeight: pathname === path ? 'bold' : 'normal' }} />
+              <ListItemIcon sx={{ color: (pathname === path || (path !== '/' && pathname.startsWith(path))) ? '#1565C0' : 'inherit' }}>
+                {icon}
+              </ListItemIcon>
+              <ListItemText
+                primary={label}
+                primaryTypographyProps={{ fontWeight: (pathname === path || (path !== '/' && pathname.startsWith(path))) ? 'bold' : 'normal' }}
+              />
             </ListItemButton>
           </ListItem>
         ))}
+      </List>
+      <Divider />
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton onClick={sair}>
+            <ListItemIcon><LogoutIcon /></ListItemIcon>
+            <ListItemText primary="Sair" />
+          </ListItemButton>
+        </ListItem>
       </List>
     </Box>
   );
@@ -54,7 +74,10 @@ export default function Layout({ children }) {
           <IconButton color="inherit" onClick={() => setMobileAberto(true)} sx={{ mr: 2 }}>
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" fontWeight="bold">Frota App</Typography>
+          <Typography variant="h6" fontWeight="bold" sx={{ flexGrow: 1 }}>Frota App</Typography>
+          <IconButton color="inherit" onClick={sair}>
+            <LogoutIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
 

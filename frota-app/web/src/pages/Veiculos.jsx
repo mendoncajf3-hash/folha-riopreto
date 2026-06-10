@@ -6,11 +6,14 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
+import HistoryIcon from '@mui/icons-material/History';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 
 const VAZIO = { placa: '', marca: '', modelo: '', ano: '', cor: '' };
 
 export default function Veiculos() {
+  const navigate = useNavigate();
   const [veiculos, setVeiculos] = useState([]);
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState(VAZIO);
@@ -85,12 +88,20 @@ export default function Veiculos() {
                   />
                 </TableCell>
                 <TableCell>
-                  <Tooltip title={v.ativo ? 'Desativar' : 'Ativar'}>
-                    <Button size="small" variant="outlined" color={v.ativo ? 'error' : 'success'}
-                      onClick={() => toggleAtivo(v)}>
-                      {v.ativo ? 'Desativar' : 'Ativar'}
-                    </Button>
-                  </Tooltip>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Ver histórico de vistorias">
+                      <Button size="small" variant="outlined" startIcon={<HistoryIcon />}
+                        onClick={() => navigate(`/veiculos/${v.id}`)}>
+                        Histórico
+                      </Button>
+                    </Tooltip>
+                    <Tooltip title={v.ativo ? 'Desativar' : 'Ativar'}>
+                      <Button size="small" variant="outlined" color={v.ativo ? 'error' : 'success'}
+                        onClick={() => toggleAtivo(v)}>
+                        {v.ativo ? 'Desativar' : 'Ativar'}
+                      </Button>
+                    </Tooltip>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}

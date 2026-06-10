@@ -1,11 +1,14 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { createTheme, ThemeProvider, CssBaseline } from '@mui/material';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createTheme, ThemeProvider, CssBaseline, CircularProgress, Box } from '@mui/material';
+import { useAuth } from './hooks/useAuth';
 import Layout from './components/Layout';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Relatorio from './pages/Relatorio';
 import Veiculos from './pages/Veiculos';
 import Colaboradores from './pages/Colaboradores';
+import HistoricoVeiculo from './pages/HistoricoVeiculo';
 
 const tema = createTheme({
   palette: {
@@ -15,19 +18,39 @@ const tema = createTheme({
   typography: { fontFamily: 'Inter, Roboto, sans-serif' },
 });
 
+function Rotas() {
+  const { sessao, carregando } = useAuth();
+
+  if (carregando) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!sessao) return <Login />;
+
+  return (
+    <Layout>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/relatorio" element={<Relatorio />} />
+        <Route path="/veiculos" element={<Veiculos />} />
+        <Route path="/veiculos/:id" element={<HistoricoVeiculo />} />
+        <Route path="/colaboradores" element={<Colaboradores />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Layout>
+  );
+}
+
 export default function App() {
   return (
     <ThemeProvider theme={tema}>
       <CssBaseline />
       <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/relatorio" element={<Relatorio />} />
-            <Route path="/veiculos" element={<Veiculos />} />
-            <Route path="/colaboradores" element={<Colaboradores />} />
-          </Routes>
-        </Layout>
+        <Rotas />
       </BrowserRouter>
     </ThemeProvider>
   );
