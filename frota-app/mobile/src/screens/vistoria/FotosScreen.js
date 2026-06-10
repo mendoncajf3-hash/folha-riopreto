@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Image, ScrollView, Alert } from 'react-native';
 import { Button, Text, Surface, ProgressBar } from 'react-native-paper';
 import { launchCamera } from 'react-native-image-picker';
-import { uploadFoto } from '../../services/vistoriaService';
+import { uploadFoto, registrarKmDevolucao } from '../../services/vistoriaService';
 
 const ANGULOS = [
   { key: 'frente', label: 'Frente', icone: '⬆️' },
@@ -12,7 +12,7 @@ const ANGULOS = [
 ];
 
 export default function FotosScreen({ route, navigation }) {
-  const { vistoriaId, momento } = route.params;
+  const { vistoriaId, momento, kmDevolucao, observacao } = route.params;
   const [fotos, setFotos] = useState({});
   const [enviando, setEnviando] = useState(false);
 
@@ -31,6 +31,9 @@ export default function FotosScreen({ route, navigation }) {
     try {
       for (const angulo of ANGULOS) {
         await uploadFoto(vistoriaId, momento, angulo.key, fotos[angulo.key]);
+      }
+      if (momento === 'devolucao') {
+        await registrarKmDevolucao(vistoriaId, { kmDevolucao, observacao });
       }
       navigation.navigate('Checklist', { vistoriaId, momento });
     } catch (e) {

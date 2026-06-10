@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Text, Checkbox, Surface, TextInput, Button, Divider } from 'react-native-paper';
-import { salvarChecklist } from '../../services/vistoriaService';
+import { salvarChecklist, finalizarVistoria } from '../../services/vistoriaService';
 
 const ITENS_CHECKLIST = [
   { nome: 'Para-choque dianteiro', grupo: 'Frente' },
@@ -45,6 +45,9 @@ export default function ChecklistScreen({ route, navigation }) {
     setSalvando(true);
     try {
       await salvarChecklist(vistoriaId, momento, itens);
+      if (momento === 'devolucao') {
+        await finalizarVistoria(vistoriaId);
+      }
       navigation.navigate('Assinatura', { vistoriaId, momento });
     } catch (e) {
       Alert.alert('Erro', 'Falha ao salvar checklist.');

@@ -46,16 +46,18 @@ export async function uploadFoto(vistoriaId, momento, angulo, uri) {
   return data.publicUrl;
 }
 
-export async function finalizarVistoria(vistoriaId, { kmDevolucao, assinatura, observacao }) {
+export async function registrarKmDevolucao(vistoriaId, { kmDevolucao, observacao }) {
   const { error } = await supabase
     .from('vistorias')
-    .update({
-      km_devolucao: kmDevolucao,
-      assinatura_devolucao: assinatura,
-      observacao_devolucao: observacao,
-      data_devolucao: new Date().toISOString(),
-      status: 'devolvido',
-    })
+    .update({ km_devolucao: kmDevolucao, observacao_devolucao: observacao })
+    .eq('id', vistoriaId);
+  if (error) throw error;
+}
+
+export async function finalizarVistoria(vistoriaId) {
+  const { error } = await supabase
+    .from('vistorias')
+    .update({ data_devolucao: new Date().toISOString(), status: 'devolvido' })
     .eq('id', vistoriaId);
   if (error) throw error;
 }
