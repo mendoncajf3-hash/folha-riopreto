@@ -529,6 +529,18 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
   </div>
 
+  <div class="card" id="card-caderno" style="padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div style="font-size:26px;">📖</div>
+      <div>
+        <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.6px;">Caderno de Leitura</div>
+        <div style="font-family:var(--disp);font-weight:700;font-size:20px;color:var(--cyan);" id="dash-lote-val">Lote —</div>
+        <div style="font-size:11px;color:var(--text3);" id="dash-lote-info">Ainda não informado</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="abrirModalLote()">✏️ Atualizar lote</button>
+  </div>
+
   <div class="sg sg6" id="dash-stats"></div>
 
   <div class="g2">
@@ -903,6 +915,22 @@ tbody tr:last-child td{border-bottom:none;}
       </div>
       <button class="btn btn-cyan" onclick="saveColab()">💾 Salvar</button>
       <button class="btn btn-ghost" onclick="closeModal('mo-colab')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Caderno de Leitura -->
+<div class="mo" id="mo-lote">
+  <div class="mo-box" style="width:min(420px,96vw)">
+    <div class="mo-title"><span>📖 Atualizar Caderno de Leitura</span><span class="mo-close" onclick="closeModal('mo-lote')">✕</span></div>
+    <div class="fg fg2">
+      <div class="fld"><label>Lote Atual</label><input id="ml-lote" type="text" placeholder="Ex: 47"></div>
+      <div class="fld"><label>Total de Lotes <span style="color:var(--text3);font-weight:400">(opcional)</span></label><input id="ml-total" type="number" min="1" placeholder="Ex: 120"></div>
+    </div>
+    <div class="fld"><label>Observação <span style="color:var(--text3);font-weight:400">(opcional)</span></label><input id="ml-obs" type="text" placeholder="Ex: zona rural pendente"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button class="btn btn-cyan" onclick="salvarLoteCaderno()">💾 Salvar</button>
+      <button class="btn btn-ghost" onclick="closeModal('mo-lote')">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1874,6 +1902,7 @@ function renderDash() {
   const comp = DB.config.competenciaAtual;
   document.getElementById('dash-sub').textContent = comp ? 'Competência: ' + fmtMesFull(comp) : 'Configure a competência em Configurações';
   document.getElementById('dash-mes-label').textContent = comp ? fmtMes(comp) : '';
+  renderCardLote();
 
   // ── Eventos do mês (inclui períodos que cruzam o mês) ──────────────────
   const [cy, cm] = comp ? comp.split('-').map(Number) : [0,0];
@@ -2154,6 +2183,49 @@ function saveColab() {
   const _acAud = editColabIdx >= 0 ? 'COLABORADOR EDITADO' : 'COLABORADOR CRIADO';
   registrarAuditoria(_uAud, _acAud, obj.nome + ' (' + obj.matr + ')');
   toast(editColabIdx >= 0 ? 'Colaborador atualizado' : 'Colaborador cadastrado', 'ok');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CARD — CADERNO DE LEITURA (lote atual)
+// ═══════════════════════════════════════════════════════════════
+function abrirModalLote() {
+  document.getElementById('ml-lote').value = DB.config.loteCadernoAtual || '';
+  document.getElementById('ml-total').value = DB.config.loteCadernoTotal || '';
+  document.getElementById('ml-obs').value = DB.config.loteCadernoObs || '';
+  openModal('mo-lote');
+}
+function salvarLoteCaderno() {
+  const lote = document.getElementById('ml-lote').value.trim();
+  if (!lote) { toast('Informe o lote atual', 'err'); return; }
+  DB.config.loteCadernoAtual = lote;
+  DB.config.loteCadernoTotal = document.getElementById('ml-total').value.trim();
+  DB.config.loteCadernoObs = document.getElementById('ml-obs').value.trim();
+  const userLogado = sessionStorage.getItem('fpd_user') || 'usuário';
+  const agora = new Date();
+  DB.config.loteCadernoPor = userLogado;
+  DB.config.loteCadernoData = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) + 'h';
+  save();
+  closeModal('mo-lote');
+  renderCardLote();
+  registrarAuditoria(userLogado, 'CADERNO DE LEITURA ATUALIZADO', 'Lote ' + lote);
+  toast('Caderno de leitura atualizado', 'ok');
+}
+function renderCardLote() {
+  const valEl = document.getElementById('dash-lote-val');
+  const infoEl = document.getElementById('dash-lote-info');
+  if (!valEl) return;
+  const c = DB.config;
+  if (!c.loteCadernoAtual) {
+    valEl.textContent = 'Lote —';
+    infoEl.textContent = 'Ainda não informado';
+    return;
+  }
+  valEl.textContent = c.loteCadernoTotal ? `Lote ${c.loteCadernoAtual} de ${c.loteCadernoTotal}` : `Lote ${c.loteCadernoAtual}`;
+  const info = [];
+  if (c.loteCadernoData) info.push('Atualizado em ' + c.loteCadernoData);
+  if (c.loteCadernoPor) info.push('por ' + c.loteCadernoPor);
+  if (c.loteCadernoObs) info.push(c.loteCadernoObs);
+  infoEl.textContent = info.join(' — ') || 'Sem observações';
 }
 
 // ═══════════════════════════════════════════════════════════════
