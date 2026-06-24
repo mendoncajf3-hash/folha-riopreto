@@ -1,0 +1,19 @@
+{
+  "name": "folha-riopreto",
+  "version": "1.0.0",
+  "description": "Sistema LEC - Folha Rio Preto com agente WhatsApp",
+  "main": "server_riopreto.js",
+  "scripts": {
+    "start": "node server_riopreto.js",
+    "whatsapp": "node whatsapp-agent.js",
+    "dev": "node server_riopreto.js"
+  },
+  "dependencies": {
+    "@hapi/boom": "^10.0.1",
+    "@whiskeysockets/baileys": "^6.7.18",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "pino": "^8.21.0",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
