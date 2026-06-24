@@ -1,7 +1,7 @@
 /**
- * Agente WhatsApp - Sistema LEC Rio Preto
- * Usa @whiskeysockets/baileys para conexão via WhatsApp Web
- * Integrado com database.json do sistema de folha
+ * Agente WhatsApp — Recrutamento Leiturista Entregador
+ * Atende candidatos via WhatsApp, responde dúvidas com IA (Gemini)
+ * e registra os interessados em candidatos.json
  */
 
 const {
@@ -9,10 +9,9 @@ const {
   DisconnectReason,
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
-  makeInMemoryStore,
-  jidDecode,
 } = require('@whiskeysockets/baileys');
 const { Boom } = require('@hapi/boom');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
@@ -20,65 +19,114 @@ const qrcode = require('qrcode-terminal');
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 
-const CONFIG_FILE = path.join(__dirname, 'whatsapp-config.json');
-const DB_FILE_PRIMARY   = path.join(__dirname, 'database.json');
-const DB_FILE_FALLBACK  = path.join(__dirname, 'db.json');
-const AUTH_DIR  = path.join(__dirname, 'auth_info_baileys');
-const LOG_FILE  = path.join(__dirname, 'whatsapp-agent.log');
+const CONFIG_FILE      = path.join(__dirname, 'whatsapp-config.json');
+const CANDIDATOS_FILE  = path.join(__dirname, 'candidatos.json');
+const AUTH_DIR         = path.join(__dirname, 'auth_info_baileys');
+const LOG_FILE         = path.join(__dirname, 'whatsapp-agent.log');
 
-function loadConfig() {
-  if (!fs.existsSync(CONFIG_FILE)) {
-    const def = {
-      admins: [],
-      prefixo: '!',
-      nomeAgente: 'LEC Rio Preto',
-      silencioso: false
-    };
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(def, null, 2));
-    log('⚙️  whatsapp-config.json criado. Adicione seus números admin antes de usar!');
-    return def;
-  }
-  return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-}
+const GEMINI_API_KEY   = 'AIzaSyD3iHLLZ2mSCjI0_Rkp5YZcI3eJiPQ4l5k';
+const GEMINI_MODEL     = 'gemini-flash-lite-latest';
 
-// ── LOGGING ───────────────────────────────────────────────────────────────────
+// Tempo máximo de inatividade por conversa: 30 minutos
+const TIMEOUT_CONVERSA = 30 * 60 * 1000;
+
+// ── ESTADO DAS CONVERSAS (em memória) ────────────────────────────────────────
+
+// Mapa: telefone → { estado, nome, chat, ultimaInteracao }
+const conversas = new Map();
+
+// ── SISTEMA DE LOG ────────────────────────────────────────────────────────────
 
 function log(msg) {
   const ts = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-  const line = `[${ts}] ${msg}`;
-  console.log(line);
-  try { fs.appendFileSync(LOG_FILE, line + '\n'); } catch(_) {}
+  const linha = `[${ts}] ${msg}`;
+  console.log(linha);
+  try { fs.appendFileSync(LOG_FILE, linha + '\n'); } catch (_) {}
 }
 
-// ── DATABASE ──────────────────────────────────────────────────────────────────
+// ── CANDIDATOS ────────────────────────────────────────────────────────────────
 
-function getDB() {
-  const file = fs.existsSync(DB_FILE_PRIMARY) ? DB_FILE_PRIMARY : DB_FILE_FALLBACK;
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch(e) {
-    return { cadastro: [], eventos: [], config: {}, calendario: {} };
-  }
+function carregarCandidatos() {
+  if (!fs.existsSync(CANDIDATOS_FILE)) return [];
+  try { return JSON.parse(fs.readFileSync(CANDIDATOS_FILE, 'utf8')); } catch (_) { return []; }
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
+function salvarCandidato(nome, telefone) {
+  const lista = carregarCandidatos();
+  const jaExiste = lista.some(c => c.telefone === telefone);
+  if (jaExiste) return false;
 
-function jidToNumero(jid) {
-  // Remove sufixo @s.whatsapp.net e @g.us
-  return jid.replace(/@.+$/, '');
+  lista.push({
+    nome,
+    telefone,
+    data: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+    status: 'interessado',
+  });
+  fs.writeFileSync(CANDIDATOS_FILE, JSON.stringify(lista, null, 2));
+  log(`✅ Candidato registrado: ${nome} (${telefone})`);
+  return true;
 }
 
-function isAdmin(jid, config) {
-  if (!config.admins || config.admins.length === 0) return true; // sem restrição se lista vazia
-  const numero = jidToNumero(jid);
-  return config.admins.some(a => a.replace(/\D/g, '') === numero.replace(/\D/g, ''));
+// ── GEMINI ────────────────────────────────────────────────────────────────────
+
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+const PROMPT_SISTEMA = `Você é "Ana", assistente de recrutamento da empresa LEC (Leitura e Entrega de Contas), responsável pelo atendimento de candidatos à vaga de Leiturista Entregador em São José do Rio Preto - SP.
+
+INFORMAÇÕES DA VAGA:
+- Cargo: Leiturista Entregador
+- Empresa: LEC - São José do Rio Preto
+- Regime: CLT
+- Salário: A combinar (compatível com o mercado)
+- Horário: Segunda a sexta, das 07h às 17h
+- Requisitos: CNH categoria A ou B, disponibilidade de horário, boa comunicação, responsabilidade, saber se locomover pela cidade
+- Atividades: leitura de hidrômetros/medidores, entrega de contas e documentos, atendimento cordial aos clientes em campo
+- Benefícios: vale alimentação, vale transporte (a confirmar no ato da contratação)
+
+REGRAS DE COMPORTAMENTO:
+1. Responda SOMENTE perguntas sobre a vaga, empresa, processo seletivo ou qualificações necessárias
+2. Se perguntarem sobre outros assuntos, redirecione gentilmente: "Posso te ajudar com informações sobre a vaga de Leiturista. Tem alguma dúvida sobre a vaga?"
+3. Use linguagem simples, amigável e profissional
+4. Mantenha as respostas curtas — máximo 3 parágrafos, ideais para leitura no WhatsApp
+5. Quando o candidato confirmar que quer se candidatar (ex: "quero me candidatar", "tenho interesse", "quero a vaga", "quero participar", "pode me inscrever"), responda com entusiasmo e inclua exatamente o marcador [[REGISTRAR]] ao final da mensagem — sem explicar o marcador ao candidato
+6. Não inclua [[REGISTRAR]] em nenhuma outra situação
+7. Não invente informações que não estão no briefing acima`;
+
+function criarChat(nomeCandidato) {
+  const model = genAI.getGenerativeModel({
+    model: GEMINI_MODEL,
+    systemInstruction: PROMPT_SISTEMA + `\n\nVocê está conversando com ${nomeCandidato}.`,
+  });
+  return model.startChat({ history: [] });
 }
 
-function isGrupo(jid) {
-  return jid.endsWith('@g.us');
+async function perguntarGemini(chat, mensagem) {
+  const result = await chat.sendMessage(mensagem);
+  return result.response.text();
 }
 
-function getTexto(msg) {
+// ── MENSAGENS FIXAS ───────────────────────────────────────────────────────────
+
+const MSG_BOAS_VINDAS = `Olá! 👋 Bem-vindo ao processo seletivo da *LEC — São José do Rio Preto*.
+
+Estou aqui para tirar suas dúvidas sobre a vaga de *Leiturista Entregador*. 😊
+
+Para começar, qual é o seu *nome completo*?`;
+
+const MSG_APOS_NOME = (nome) =>
+  `Prazer, *${nome}*! 😊\n\nPode me perguntar qualquer coisa sobre a vaga — salário, requisitos, horário, atividades... Estou aqui para ajudar!\n\nSe ao final quiser se candidatar, é só me dizer. 🙂`;
+
+const MSG_REGISTRADO = (nome) =>
+  `Perfeito, *${nome}*! ✅\n\nSeu interesse foi registrado com sucesso. Nossa equipe de RH entrará em contato em breve.\n\nQualquer dúvida, pode chamar aqui. Boa sorte! 🍀`;
+
+const MSG_JA_REGISTRADO = (nome) =>
+  `*${nome}*, seu interesse já estava registrado! 📋\n\nNossa equipe de RH vai entrar em contato em breve. Fique atento ao seu celular! 😊`;
+
+const MSG_ERRO = `Desculpe, tive um problema ao processar sua mensagem. Pode tentar novamente?`;
+
+// ── PROCESSAMENTO DE MENSAGENS ────────────────────────────────────────────────
+
+function obterTexto(msg) {
   return (
     msg.message?.conversation ||
     msg.message?.extendedTextMessage?.text ||
@@ -88,335 +136,129 @@ function getTexto(msg) {
   ).trim();
 }
 
-// ── COMANDOS ──────────────────────────────────────────────────────────────────
-
-function cmdAjuda(config) {
-  const p = config.prefixo;
-  return [
-    `🤖 *${config.nomeAgente} — Comandos disponíveis*`,
-    ``,
-    `📋 *Consultas gerais:*`,
-    `  ${p}status    → Status do sistema`,
-    `  ${p}resumo    → Resumo da competência atual`,
-    `  ${p}faltas    → Resumo de faltas por tipo`,
-    `  ${p}config    → Configurações do período`,
-    ``,
-    `👥 *Funcionários:*`,
-    `  ${p}total     → Total de funcionários ativos`,
-    `  ${p}lista     → Lista de funcionários (admin)`,
-    ``,
-    `📅 *Eventos:*`,
-    `  ${p}eventos   → Últimos 10 lançamentos`,
-    `  ${p}hoje      → Eventos de hoje`,
-    ``,
-    `ℹ️  Envie ${p}ajuda para ver este menu.`,
-  ].join('\n');
-}
-
-function cmdStatus(config) {
-  const db = getDB();
-  const cfg = db.config || {};
-  const qtdFuncionarios = (db.cadastro || []).filter(f => f.ativo !== false).length;
-  const qtdEventos = (db.eventos || []).length;
-  const competencia = cfg.competenciaAtual || '—';
-  const base = cfg.base || 'Rio Preto';
-
-  return [
-    `✅ *Sistema LEC — Online*`,
-    ``,
-    `📍 Base: ${base}`,
-    `📅 Competência: ${formatCompetencia(competencia)}`,
-    `👥 Funcionários ativos: ${qtdFuncionarios}`,
-    `📌 Total de lançamentos: ${qtdEventos}`,
-    `🕐 Atualizado: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
-  ].join('\n');
-}
-
-function cmdResumo() {
-  const db = getDB();
-  const cfg = db.config || {};
-  const funcionarios = (db.cadastro || []).filter(f => f.ativo !== false);
-  const eventos = db.eventos || [];
-
-  const competencia = cfg.competenciaAtual || '—';
-  const du = cfg.duAtual || '—';
-  const dataCorte = cfg.dataCorte ? new Date(cfg.dataCorte + 'T00:00:00').toLocaleDateString('pt-BR') : '—';
-
-  // Contar tipos de evento
-  const porTipo = {};
-  eventos.forEach(e => {
-    const tipo = e.tipo || e.evento || 'Outros';
-    porTipo[tipo] = (porTipo[tipo] || 0) + (parseFloat(e.quantidade || e.dias || 1));
-  });
-
-  const resumoEventos = Object.entries(porTipo)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([tipo, qtd]) => `  • ${tipo}: ${qtd}`)
-    .join('\n') || '  Nenhum lançamento';
-
-  return [
-    `📊 *Resumo — ${formatCompetencia(competencia)}*`,
-    ``,
-    `👥 Funcionários: ${funcionarios.length}`,
-    `📅 Dias Úteis (DU): ${du}`,
-    `✂️  Data de corte: ${dataCorte}`,
-    ``,
-    `📌 *Top lançamentos:*`,
-    resumoEventos,
-  ].join('\n');
-}
-
-function cmdFaltas() {
-  const db = getDB();
-  const eventos = db.eventos || [];
-
-  if (eventos.length === 0) {
-    return '📭 Nenhum evento lançado até o momento.';
+function limparConversasAntigas() {
+  const agora = Date.now();
+  for (const [tel, conv] of conversas) {
+    if (agora - conv.ultimaInteracao > TIMEOUT_CONVERSA) {
+      conversas.delete(tel);
+    }
   }
-
-  const porTipo = {};
-  eventos.forEach(e => {
-    const tipo = e.tipo || e.evento || 'Outros';
-    porTipo[tipo] = (porTipo[tipo] || 0) + (parseFloat(e.quantidade || e.dias || 1));
-  });
-
-  const linhas = Object.entries(porTipo)
-    .sort((a, b) => b[1] - a[1])
-    .map(([tipo, qtd]) => `  • ${tipo}: *${qtd}*`);
-
-  return [
-    `📋 *Faltas e ocorrências por tipo:*`,
-    ``,
-    ...linhas,
-    ``,
-    `Total de registros: ${eventos.length}`,
-  ].join('\n');
 }
 
-function cmdConfig() {
-  const db = getDB();
-  const cfg = db.config || {};
-
-  return [
-    `⚙️  *Configurações do Sistema*`,
-    ``,
-    `📅 Competência atual: ${formatCompetencia(cfg.competenciaAtual || '—')}`,
-    `📅 Próxima competência: ${formatCompetencia(cfg.competenciaProxima || '—')}`,
-    `📆 DU atual: ${cfg.duAtual || '—'} dias`,
-    `📆 DU próximo: ${cfg.duProximo || '—'} dias`,
-    `✂️  Data de corte: ${cfg.dataCorte ? new Date(cfg.dataCorte + 'T00:00:00').toLocaleDateString('pt-BR') : '—'}`,
-    `📍 Base: ${cfg.base || '—'}`,
-    `👤 Coordenador: ${cfg.coordenador || '—'}`,
-  ].join('\n');
-}
-
-function cmdTotal() {
-  const db = getDB();
-  const ativos = (db.cadastro || []).filter(f => f.ativo !== false);
-  const inativos = (db.cadastro || []).filter(f => f.ativo === false);
-
-  return [
-    `👥 *Funcionários*`,
-    ``,
-    `✅ Ativos: ${ativos.length}`,
-    `❌ Inativos: ${inativos.length}`,
-    `📊 Total cadastrado: ${(db.cadastro || []).length}`,
-  ].join('\n');
-}
-
-function cmdLista() {
-  const db = getDB();
-  const ativos = (db.cadastro || []).filter(f => f.ativo !== false);
-
-  if (ativos.length === 0) {
-    return '📭 Nenhum funcionário cadastrado.';
-  }
-
-  const MAX = 30;
-  const exibidos = ativos.slice(0, MAX);
-  const linhas = exibidos.map((f, i) => `  ${i + 1}. ${f.nome || f.name || '(sem nome)'}`);
-
-  return [
-    `👥 *Lista de funcionários ativos (${ativos.length}):*`,
-    ``,
-    ...linhas,
-    ativos.length > MAX ? `\n  ... e mais ${ativos.length - MAX} funcionários.` : '',
-  ].filter(Boolean).join('\n');
-}
-
-function cmdEventos() {
-  const db = getDB();
-  const eventos = (db.eventos || []).slice(-10).reverse();
-
-  if (eventos.length === 0) {
-    return '📭 Nenhum evento lançado.';
-  }
-
-  const linhas = eventos.map(e => {
-    const nome = e.nome || e.funcionario || '?';
-    const tipo = e.tipo || e.evento || '?';
-    const qtd  = e.quantidade || e.dias || '';
-    const data = e.data ? new Date(e.data + 'T00:00:00').toLocaleDateString('pt-BR') : '';
-    return `  • ${nome} — ${tipo}${qtd ? ' (' + qtd + ')' : ''}${data ? ' em ' + data : ''}`;
-  });
-
-  return [
-    `📌 *Últimos ${eventos.length} lançamentos:*`,
-    ``,
-    ...linhas,
-  ].join('\n');
-}
-
-function cmdHoje() {
-  const db = getDB();
-  const hoje = new Date().toISOString().split('T')[0];
-  const eventos = (db.eventos || []).filter(e => e.data === hoje || e.dataInicio === hoje);
-
-  if (eventos.length === 0) {
-    return `📭 Nenhum evento para hoje (${new Date().toLocaleDateString('pt-BR')}).`;
-  }
-
-  const linhas = eventos.map(e => {
-    const nome = e.nome || e.funcionario || '?';
-    const tipo = e.tipo || e.evento || '?';
-    return `  • ${nome} — ${tipo}`;
-  });
-
-  return [
-    `📅 *Eventos de hoje (${new Date().toLocaleDateString('pt-BR')}):*`,
-    ``,
-    ...linhas,
-  ].join('\n');
-}
-
-// ── FORMATAR ──────────────────────────────────────────────────────────────────
-
-function formatCompetencia(comp) {
-  if (!comp || !comp.includes('-')) return comp;
-  const [ano, mes] = comp.split('-');
-  const meses = ['','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  return `${meses[parseInt(mes)] || mes}/${ano}`;
-}
-
-// ── HANDLER DE MENSAGENS ──────────────────────────────────────────────────────
-
-async function handleMessage(sock, msg, config) {
+async function processarMensagem(sock, msg) {
   if (msg.key.fromMe) return;
 
   const from = msg.key.remoteJid;
-  if (!from) return;
+  if (!from || from === 'status@broadcast') return;
 
-  // Ignorar mensagens de status/broadcast
-  if (from === 'status@broadcast') return;
+  // Ignorar grupos
+  if (from.endsWith('@g.us')) return;
 
-  const texto = getTexto(msg);
-  if (!texto.startsWith(config.prefixo)) return;
+  const texto = obterTexto(msg);
+  if (!texto) return;
 
-  const [cmd, ...args] = texto.slice(config.prefixo.length).trim().toLowerCase().split(/\s+/);
-  const numero = jidToNumero(from);
+  const telefone = from.replace('@s.whatsapp.net', '');
 
-  log(`[MSG] ${numero} → ${config.prefixo}${cmd}`);
+  log(`[MSG] ${telefone}: "${texto.slice(0, 60)}${texto.length > 60 ? '...' : ''}"`);
 
-  let resposta = null;
+  limparConversasAntigas();
 
-  switch (cmd) {
-    case 'ajuda':
-    case 'help':
-    case 'menu':
-      resposta = cmdAjuda(config);
-      break;
+  let conversa = conversas.get(telefone);
 
-    case 'status':
-      resposta = cmdStatus(config);
-      break;
-
-    case 'resumo':
-    case 'folha':
-      resposta = cmdResumo();
-      break;
-
-    case 'faltas':
-    case 'ocorrencias':
-      resposta = cmdFaltas();
-      break;
-
-    case 'config':
-    case 'configuracao':
-    case 'configurações':
-      resposta = cmdConfig();
-      break;
-
-    case 'total':
-    case 'funcionarios':
-      resposta = cmdTotal();
-      break;
-
-    case 'lista':
-      if (!isAdmin(from, config)) {
-        resposta = '⛔ Comando restrito. Apenas administradores podem listar funcionários.';
-      } else {
-        resposta = cmdLista();
-      }
-      break;
-
-    case 'eventos':
-    case 'lancamentos':
-      resposta = cmdEventos();
-      break;
-
-    case 'hoje':
-      resposta = cmdHoje();
-      break;
-
-    default:
-      // Sem resposta para comandos desconhecidos (evita spam)
-      if (!config.silencioso) {
-        resposta = `❓ Comando *${config.prefixo}${cmd}* não reconhecido.\nDigite *${config.prefixo}ajuda* para ver os comandos disponíveis.`;
-      }
+  // ── ESTADO: INÍCIO (primeira mensagem ou conversa expirada) ────────────────
+  if (!conversa) {
+    conversas.set(telefone, {
+      estado: 'aguardando_nome',
+      nome: null,
+      chat: null,
+      ultimaInteracao: Date.now(),
+    });
+    await enviar(sock, from, MSG_BOAS_VINDAS, msg);
+    return;
   }
 
-  if (resposta) {
-    await sock.sendMessage(from, { text: resposta }, { quoted: msg });
-    log(`[RESP] ${numero} ← ${cmd} (${resposta.length} chars)`);
+  conversa.ultimaInteracao = Date.now();
+
+  // ── ESTADO: AGUARDANDO NOME ───────────────────────────────────────────────
+  if (conversa.estado === 'aguardando_nome') {
+    const nome = texto.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim();
+
+    if (nome.length < 2) {
+      await enviar(sock, from, 'Não consegui identificar seu nome. Pode me dizer seu *nome completo*?', msg);
+      return;
+    }
+
+    conversa.nome = nome.split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+    conversa.chat = criarChat(conversa.nome);
+    conversa.estado = 'conversa';
+
+    await enviar(sock, from, MSG_APOS_NOME(conversa.nome), msg);
+    return;
+  }
+
+  // ── ESTADO: JÁ REGISTRADO ────────────────────────────────────────────────
+  if (conversa.estado === 'registrado') {
+    await enviar(sock, from, MSG_JA_REGISTRADO(conversa.nome), msg);
+    return;
+  }
+
+  // ── ESTADO: CONVERSA COM IA ───────────────────────────────────────────────
+  if (conversa.estado === 'conversa') {
+    try {
+      const resposta = await perguntarGemini(conversa.chat, texto);
+
+      // Detecta se a IA quer registrar o candidato
+      if (resposta.includes('[[REGISTRAR]]')) {
+        const respostaLimpa = resposta.replace('[[REGISTRAR]]', '').trim();
+        await enviar(sock, from, respostaLimpa, msg);
+
+        const novo = salvarCandidato(conversa.nome, telefone);
+        conversa.estado = 'registrado';
+
+        await enviar(sock, from, novo ? MSG_REGISTRADO(conversa.nome) : MSG_JA_REGISTRADO(conversa.nome), msg);
+      } else {
+        await enviar(sock, from, resposta, msg);
+      }
+    } catch (erro) {
+      log(`❌ Erro Gemini (${telefone}): ${erro.message}`);
+      await enviar(sock, from, MSG_ERRO, msg);
+    }
+  }
+}
+
+async function enviar(sock, jid, texto, msgOrigem) {
+  try {
+    await sock.sendMessage(jid, { text: texto }, { quoted: msgOrigem });
+  } catch (e) {
+    log(`❌ Erro ao enviar mensagem: ${e.message}`);
   }
 }
 
 // ── CONEXÃO BAILEYS ───────────────────────────────────────────────────────────
 
 async function conectar() {
-  const config = loadConfig();
-  log(`🚀 Iniciando agente: ${config.nomeAgente}`);
-
-  if (config.admins.length === 0) {
-    log('⚠️  ATENÇÃO: Nenhum número admin configurado em whatsapp-config.json');
-    log('   O comando !lista ficará acessível a qualquer pessoa até você configurar admins.');
-  }
+  log('🚀 Iniciando agente de recrutamento LEC...');
 
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const { version } = await fetchLatestBaileysVersion();
-
-  log(`📦 Baileys versão ${version.join('.')}`);
 
   const sock = makeWASocket({
     version,
     auth: state,
     printQRInTerminal: false,
     logger: pino({ level: 'silent' }),
-    browser: ['LEC Rio Preto', 'Chrome', '120.0'],
+    browser: ['LEC Recrutamento', 'Chrome', '120.0'],
     generateHighQualityLinkPreview: false,
     syncFullHistory: false,
   });
 
   sock.ev.on('creds.update', saveCreds);
 
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
+  sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
     if (qr) {
-      console.log('\n📱 Escaneie o QR Code abaixo com o WhatsApp:\n');
+      console.log('\n📱 Escaneie o QR Code com o WhatsApp:\n');
       qrcode.generate(qr, { small: true });
-      console.log('\n');
+      console.log();
     }
 
     if (connection === 'close') {
@@ -428,40 +270,32 @@ async function conectar() {
       log(`🔌 Conexão encerrada (código ${codigo}). ${deslogado ? 'Sessão expirada.' : 'Reconectando...'}`);
 
       if (deslogado) {
-        // Limpar sessão e solicitar novo QR
-        try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch(_) {}
-        log('🗑️  Sessão removida. Reinicie o agente para gerar novo QR Code.');
+        try { fs.rmSync(AUTH_DIR, { recursive: true, force: true }); } catch (_) {}
+        log('🗑️  Sessão removida. Reinicie para gerar novo QR Code.');
         process.exit(1);
       } else {
-        // Reconexão com backoff
-        const delay = Math.min(5000 * (1 + Math.random()), 15000);
-        log(`⏳ Aguardando ${Math.round(delay / 1000)}s para reconectar...`);
+        const delay = Math.min(5000 + Math.random() * 5000, 15000);
         setTimeout(conectar, delay);
       }
     } else if (connection === 'open') {
-      log('✅ WhatsApp conectado com sucesso!');
-      log(`   Número: ${sock.user?.id || '?'}`);
-      log(`   Prefixo de comandos: ${config.prefixo}`);
+      log(`✅ WhatsApp conectado! Número: ${sock.user?.id || '?'}`);
+      log(`   Aguardando mensagens de candidatos...`);
     }
   });
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
     for (const msg of messages) {
-      try {
-        await handleMessage(sock, msg, config);
-      } catch(e) {
-        log(`❌ Erro ao processar mensagem: ${e.message}`);
-      }
+      await processarMensagem(sock, msg).catch(e =>
+        log(`❌ Erro inesperado: ${e.message}`)
+      );
     }
   });
-
-  return sock;
 }
 
 // ── START ─────────────────────────────────────────────────────────────────────
 
 conectar().catch(e => {
-  log(`💥 Erro fatal: ${e.message}`);
+  log(`💥 Falha ao iniciar: ${e.message}`);
   process.exit(1);
 });
