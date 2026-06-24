@@ -51,7 +51,7 @@ function carregarCandidatos() {
   try { return JSON.parse(fs.readFileSync(CANDIDATOS_FILE, 'utf8')); } catch (_) { return []; }
 }
 
-function salvarCandidato(nome, telefone) {
+function salvarCandidato(nome, telefone, idade, bairro) {
   const lista = carregarCandidatos();
   const jaExiste = lista.some(c => c.telefone === telefone);
   if (jaExiste) return false;
@@ -59,11 +59,13 @@ function salvarCandidato(nome, telefone) {
   lista.push({
     nome,
     telefone,
+    idade: idade || '',
+    bairro: bairro || '',
     data: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
     status: 'interessado',
   });
   fs.writeFileSync(CANDIDATOS_FILE, JSON.stringify(lista, null, 2));
-  log(`✅ Candidato registrado: ${nome} (${telefone})`);
+  log(`✅ Candidato registrado: ${nome} | ${idade} | ${bairro} | (${telefone})`);
   return true;
 }
 
@@ -79,9 +81,11 @@ INFORMAÇÕES DA VAGA:
 - Regime: CLT
 - Salário: A combinar (compatível com o mercado)
 - Horário: Segunda a sexta, das 07h às 17h
-- Requisitos: CNH categoria A ou B, disponibilidade de horário, boa comunicação, responsabilidade, saber se locomover pela cidade
-- Atividades: leitura de hidrômetros/medidores, entrega de contas e documentos, atendimento cordial aos clientes em campo
+- Requisito principal: disponibilidade para andar a pé durante o expediente (rotas a pé pela cidade)
+- Outros requisitos: boa comunicação, responsabilidade, pontualidade
+- Atividades: leitura de hidrômetros e medidores em campo, entrega de contas e documentos nas residências, atendimento cordial aos clientes
 - Benefícios: vale alimentação, vale transporte (a confirmar no ato da contratação)
+- Observação: não é necessário ter moto ou CNH — o trabalho é feito a pé nas rotas designadas
 
 REGRAS DE COMPORTAMENTO:
 1. Responda SOMENTE perguntas sobre a vaga, empresa, processo seletivo ou qualificações necessárias
@@ -92,10 +96,11 @@ REGRAS DE COMPORTAMENTO:
 6. Não inclua [[REGISTRAR]] em nenhuma outra situação
 7. Não invente informações que não estão no briefing acima`;
 
-function criarChat(nomeCandidato) {
+function criarChat(nomeCandidato, idade, bairro) {
+  const contexto = `\n\nDados do candidato já coletados:\n- Nome: ${nomeCandidato}\n- Idade: ${idade}\n- Bairro/Região: ${bairro}`;
   const model = genAI.getGenerativeModel({
     model: GEMINI_MODEL,
-    systemInstruction: PROMPT_SISTEMA + `\n\nVocê está conversando com ${nomeCandidato}.`,
+    systemInstruction: PROMPT_SISTEMA + contexto,
   });
   return model.startChat({ history: [] });
 }
@@ -107,20 +112,30 @@ async function perguntarGemini(chat, mensagem) {
 
 // ── MENSAGENS FIXAS ───────────────────────────────────────────────────────────
 
-const MSG_BOAS_VINDAS = `Olá! 👋 Bem-vindo ao processo seletivo da *LEC — São José do Rio Preto*.
+const MSG_BOAS_VINDAS =
+  `Olá! 👋 Bem-vindo ao processo seletivo da *LEC — São José do Rio Preto*.\n\n` +
+  `Estou aqui para te ajudar com a vaga de *Leiturista Entregador*. 😊\n\n` +
+  `Para começar, me diz seu *nome completo*:`;
 
-Estou aqui para tirar suas dúvidas sobre a vaga de *Leiturista Entregador*. 😊
+const MSG_PEDE_IDADE = (nome) =>
+  `Prazer, *${nome}*! 😊\n\nAgora me diz: qual é a sua *idade*?`;
 
-Para começar, qual é o seu *nome completo*?`;
+const MSG_PEDE_BAIRRO = () =>
+  `Ótimo! E em qual *bairro ou região* de Rio Preto você mora?`;
 
-const MSG_APOS_NOME = (nome) =>
-  `Prazer, *${nome}*! 😊\n\nPode me perguntar qualquer coisa sobre a vaga — salário, requisitos, horário, atividades... Estou aqui para ajudar!\n\nSe ao final quiser se candidatar, é só me dizer. 🙂`;
+const MSG_APOS_DADOS = (nome) =>
+  `Perfeito, *${nome}*! Dados anotados. ✏️\n\n` +
+  `Agora pode me perguntar qualquer coisa sobre a vaga — horário, atividades, o que esperar do dia a dia...\n\n` +
+  `Se quiser se candidatar, é só me dizer. 🙂`;
 
 const MSG_REGISTRADO = (nome) =>
-  `Perfeito, *${nome}*! ✅\n\nSeu interesse foi registrado com sucesso. Nossa equipe de RH entrará em contato em breve.\n\nQualquer dúvida, pode chamar aqui. Boa sorte! 🍀`;
+  `Perfeito, *${nome}*! ✅\n\n` +
+  `Seu interesse foi registrado com sucesso. Nossa equipe de RH entrará em contato em breve.\n\n` +
+  `Boa sorte! 🍀`;
 
 const MSG_JA_REGISTRADO = (nome) =>
-  `*${nome}*, seu interesse já estava registrado! 📋\n\nNossa equipe de RH vai entrar em contato em breve. Fique atento ao seu celular! 😊`;
+  `*${nome}*, seu interesse já estava registrado! 📋\n\n` +
+  `Nossa equipe de RH vai entrar em contato em breve. Fique atento ao seu celular! 😊`;
 
 const MSG_ERRO = `Desculpe, tive um problema ao processar sua mensagem. Pode tentar novamente?`;
 
@@ -170,6 +185,8 @@ async function processarMensagem(sock, msg) {
     conversas.set(telefone, {
       estado: 'aguardando_nome',
       nome: null,
+      idade: null,
+      bairro: null,
       chat: null,
       ultimaInteracao: Date.now(),
     });
@@ -182,17 +199,31 @@ async function processarMensagem(sock, msg) {
   // ── ESTADO: AGUARDANDO NOME ───────────────────────────────────────────────
   if (conversa.estado === 'aguardando_nome') {
     const nome = texto.replace(/[^a-zA-ZÀ-ÿ\s]/g, '').trim();
-
     if (nome.length < 2) {
       await enviar(sock, from, 'Não consegui identificar seu nome. Pode me dizer seu *nome completo*?', msg);
       return;
     }
+    conversa.nome = nome.split(' ')
+      .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
+    conversa.estado = 'aguardando_idade';
+    await enviar(sock, from, MSG_PEDE_IDADE(conversa.nome), msg);
+    return;
+  }
 
-    conversa.nome = nome.split(' ').map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()).join(' ');
-    conversa.chat = criarChat(conversa.nome);
+  // ── ESTADO: AGUARDANDO IDADE ──────────────────────────────────────────────
+  if (conversa.estado === 'aguardando_idade') {
+    conversa.idade = texto.trim();
+    conversa.estado = 'aguardando_bairro';
+    await enviar(sock, from, MSG_PEDE_BAIRRO(), msg);
+    return;
+  }
+
+  // ── ESTADO: AGUARDANDO BAIRRO ─────────────────────────────────────────────
+  if (conversa.estado === 'aguardando_bairro') {
+    conversa.bairro = texto.trim();
+    conversa.chat = criarChat(conversa.nome, conversa.idade, conversa.bairro);
     conversa.estado = 'conversa';
-
-    await enviar(sock, from, MSG_APOS_NOME(conversa.nome), msg);
+    await enviar(sock, from, MSG_APOS_DADOS(conversa.nome), msg);
     return;
   }
 
@@ -207,12 +238,11 @@ async function processarMensagem(sock, msg) {
     try {
       const resposta = await perguntarGemini(conversa.chat, texto);
 
-      // Detecta se a IA quer registrar o candidato
       if (resposta.includes('[[REGISTRAR]]')) {
         const respostaLimpa = resposta.replace('[[REGISTRAR]]', '').trim();
         await enviar(sock, from, respostaLimpa, msg);
 
-        const novo = salvarCandidato(conversa.nome, telefone);
+        const novo = salvarCandidato(conversa.nome, telefone, conversa.idade, conversa.bairro);
         conversa.estado = 'registrado';
 
         await enviar(sock, from, novo ? MSG_REGISTRADO(conversa.nome) : MSG_JA_REGISTRADO(conversa.nome), msg);
