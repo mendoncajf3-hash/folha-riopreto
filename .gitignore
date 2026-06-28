@@ -1,0 +1,36 @@
+# ── Segredos e ambiente ──────────────────────────────
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+secrets/
+
+# ── Banco de dados local ─────────────────────────────
+db.json
+database.json
+users.json
+backups/
+*.sqlite
+
+# ── Dependências ─────────────────────────────────────
+node_modules/
+package-lock.json
+
+# ── Build ────────────────────────────────────────────
+dist/
+build/
+.vite/
+
+# ── Logs ─────────────────────────────────────────────
+*.log
+npm-debug.log*
+pm2.log
+
+# ── Sistema ──────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
