@@ -13,7 +13,7 @@ const BACKUPS_DIR = path.join(__dirname, 'backups');
 app.use(express.json());
 app.use(express.static('public'));
 app.use(session({
-  secret: 'folha-previa-secret-key',
+  secret: process.env.SESSION_SECRET || 'dev-only-change-me',
   resave: false,
   saveUninitialized: true
 }));
@@ -150,7 +150,11 @@ app.post('/api/backups/restore/:name', (req, res) => {
 app.post('/api/ai', async (req, res) => {
   try {
     const { mensagem } = req.body;
-    const genAI = new GoogleGenerativeAI('AIzaSyD3iHLLZ2mSCjI0_Rkp5YZcI3eJiPQ4l5k');
+    const apiKey = process.env.GOOGLE_AI_KEY;
+    if (!apiKey) {
+      return res.json({ ok: false, erro: 'GOOGLE_AI_KEY não configurada no ambiente' });
+    }
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-lite-latest' });
     
     const result = await model.generateContent(mensagem);
@@ -173,11 +177,13 @@ if (!fs.existsSync(DB_PATH)) {
       base: 'S. JOSÉ DO RIO PRETO'
     },
     calendario: {},
+    // Senhas iniciais vêm de variáveis de ambiente (ver .env.example).
+    // Em primeiro acesso, troque a senha de cada usuário pelo painel.
     usuarios: [
-      { usuario: 'jefferson', senha: 'lec2024', name: 'Jefferson', role: 'ADMIN' },
-      { usuario: 'daniel', senha: 'lec@art123', name: 'Daniel', role: 'OPERADOR' },
-      { usuario: 'fernando', senha: 'lec@fer#456', name: 'Fernando', role: 'OPERADOR' },
-      { usuario: 'luan', senha: 'lec@luan#789', name: 'Luan', role: 'OPERADOR' }
+      { usuario: 'jefferson', senha: process.env.SEED_PWD_JEFFERSON || 'TROCAR_NO_PRIMEIRO_ACESSO', name: 'Jefferson', role: 'ADMIN' },
+      { usuario: 'daniel',    senha: process.env.SEED_PWD_DANIEL    || 'TROCAR_NO_PRIMEIRO_ACESSO', name: 'Daniel',    role: 'OPERADOR' },
+      { usuario: 'fernando',  senha: process.env.SEED_PWD_FERNANDO  || 'TROCAR_NO_PRIMEIRO_ACESSO', name: 'Fernando',  role: 'OPERADOR' },
+      { usuario: 'luan',      senha: process.env.SEED_PWD_LUAN      || 'TROCAR_NO_PRIMEIRO_ACESSO', name: 'Luan',      role: 'OPERADOR' }
     ]
   };
   fs.writeFileSync(DB_PATH, JSON.stringify(defaultDB, null, 2), 'utf-8');

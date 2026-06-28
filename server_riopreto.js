@@ -12,7 +12,7 @@ const USERS_FILE = path.join(__dirname, 'users.json');
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-  secret: 'lec_riopreto_2026_secret_xk9',
+  secret: process.env.SESSION_SECRET || 'dev-only-change-me',
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 8 * 60 * 60 * 1000 } // 8 horas
@@ -26,14 +26,17 @@ function hashSenha(pwd) {
 // Inicializar usuários
 function initUsers() {
   if (!fs.existsSync(USERS_FILE)) {
+    // Senhas iniciais vêm de variáveis de ambiente (ver .env.example).
+    // Se não definidas, gera uma senha aleatória por usuário e exige troca.
+    const seed = (envVar) => process.env[envVar] || crypto.randomBytes(12).toString('hex');
     const users = {
-      'jefferson': { pwd: hashSenha('lec2024'),     name: 'Jefferson', role: 'ADMIN',    ativo: true },
-      'daniel':    { pwd: hashSenha('da@lec31847'), name: 'Daniel',    role: 'OPERADOR', ativo: true },
-      'fernando':  { pwd: hashSenha('ft@lec54233'), name: 'Fernando',  role: 'OPERADOR', ativo: true },
-      'luan':      { pwd: hashSenha('lh@lec72619'), name: 'Luan',      role: 'OPERADOR', ativo: true }
+      'jefferson': { pwd: hashSenha(seed('SEED_PWD_JEFFERSON')), name: 'Jefferson', role: 'ADMIN',    ativo: true },
+      'daniel':    { pwd: hashSenha(seed('SEED_PWD_DANIEL')),    name: 'Daniel',    role: 'OPERADOR', ativo: true },
+      'fernando':  { pwd: hashSenha(seed('SEED_PWD_FERNANDO')),  name: 'Fernando',  role: 'OPERADOR', ativo: true },
+      'luan':      { pwd: hashSenha(seed('SEED_PWD_LUAN')),      name: 'Luan',      role: 'OPERADOR', ativo: true }
     };
     fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-    console.log('Usuários inicializados.');
+    console.log('Usuários inicializados. Defina SEED_PWD_* no .env ou use a recuperação de senha.');
   }
 }
 
