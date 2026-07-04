@@ -1,0 +1,234 @@
+// Portal de Gestão Operacional — schema PostgreSQL.
+// Núcleo (identidade, RBAC, auditoria, arquivos, notificações) + módulo Escalas.
+// Convenções: id UUID, timestamps automáticos, soft delete via deletedAt.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ────────────────────────────── NÚCLEO ──────────────────────────────
+
+model Base {
+  id        String    @id @default(uuid())
+  name      String
+  code      String    @unique
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  users   User[]
+  teams   Team[]
+  shifts  Shift[]
+
+  @@map("bases")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  active       Boolean   @default(true)
+  baseId       String?   @map("base_id")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  base      Base?      @relation(fields: [baseId], references: [id])
+  userRoles UserRole[]
+  sessions  Session[]
+  auditLogs AuditLog[]
+
+  shifts        Shift[]        @relation("ShiftUser")
+  substitutions Substitution[] @relation("SubstituteUser")
+  vacations     Vacation[]
+  teamMembers   TeamMember[]
+  notifications Notification[]
+
+  @@index([baseId])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique // ADMIN, GESTOR, OPERADOR
+  description String?
+  createdAt   DateTime @default(now())
+
+  userRoles       UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id     String @id @default(uuid())
+  module String // ver MODULES em @portal/shared
+  action String // read | create | update | delete | manage
+  key    String @unique // "<module>:<action>"
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String @map("user_id")
+  roleId String @map("role_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Session {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  refreshTokenHash String   @map("refresh_token_hash")
+  userAgent        String?  @map("user_agent")
+  ip               String?
+  expiresAt        DateTime @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model AuditLog {
+  id       String   @id @default(uuid())
+  userId   String?  @map("user_id")
+  module   String
+  entity   String
+  entityId String?  @map("entity_id")
+  action   String
+  diff     Json?
+  ip       String?
+  at       DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([module])
+  @@index([entity, entityId])
+  @@index([at])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String
+  title     String
+  body      String?
+  link      String?
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+// ────────────────────────────── MÓDULO: ESCALAS ──────────────────────────────
+
+model Team {
+  id        String    @id @default(uuid())
+  name      String
+  baseId    String    @map("base_id")
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  base    Base         @relation(fields: [baseId], references: [id])
+  members TeamMember[]
+  shifts  Shift[]
+
+  @@index([baseId])
+  @@map("teams")
+}
+
+model TeamMember {
+  teamId String @map("team_id")
+  userId String @map("user_id")
+  role   String @default("MEMBRO") // MEMBRO | LIDER
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+  @@map("team_members")
+}
+
+model Shift {
+  id        String    @id @default(uuid())
+  baseId    String    @map("base_id")
+  userId    String    @map("user_id")
+  teamId    String?   @map("team_id")
+  date      DateTime  @db.Date
+  period    String    @default("INTEGRAL") // MANHA | TARDE | NOITE | INTEGRAL
+  status    String    @default("PLANEJADA") // PLANEJADA | CONFIRMADA | AUSENTE | SUBSTITUIDA
+  note      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  base         Base           @relation(fields: [baseId], references: [id])
+  user         User           @relation("ShiftUser", fields: [userId], references: [id])
+  team         Team?          @relation(fields: [teamId], references: [id])
+  substitution Substitution?
+
+  @@index([baseId, date])
+  @@index([userId, date])
+  @@map("shifts")
+}
+
+model Substitution {
+  id           String   @id @default(uuid())
+  shiftId      String   @unique @map("shift_id")
+  substituteId String   @map("substitute_id")
+  reason       String?
+  createdAt    DateTime @default(now())
+
+  shift      Shift @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  substitute User  @relation("SubstituteUser", fields: [substituteId], references: [id])
+
+  @@map("substitutions")
+}
+
+model Vacation {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+  status    String   @default("SOLICITADA") // SOLICITADA | APROVADA | REJEITADA
+  note      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("vacations")
+}
