@@ -1,0 +1,10 @@
+{
+  "name": "Portal de Gestão Operacional",
+  "short_name": "Portal Op.",
+  "description": "Sistema central de gestão operacional",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1514",
+  "theme_color": "#0e7c86",
+  "icons": []
+}
