@@ -1028,7 +1028,24 @@ function save() {
       calendario: DB.calendario,
       config: DB.config
     })
-  }).catch(e => console.warn('Erro ao salvar no servidor:', e));
+  })
+  .then(r => r.json().then(data => ({ status: r.status, data })))
+  .then(({ status, data }) => {
+    if (!data.ok) {
+      if (status === 401) {
+        toast('Sessão expirada — faça login novamente para salvar', 'err');
+        sessionStorage.clear();
+        document.getElementById('login-screen').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      } else {
+        toast('Erro ao salvar: ' + (data.erro || 'tente novamente'), 'err');
+      }
+    }
+  })
+  .catch(e => {
+    console.warn('Erro ao salvar no servidor:', e);
+    toast('Erro de conexão — as alterações NÃO foram salvas no servidor', 'err');
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
